@@ -217,16 +217,12 @@ export class Editor {
         if (!this.enabled) return;
 
         // Interaction with existing objects first
-        if (this.mode === 'delete' || this.mode === 'window') {
+        if (this.mode === 'delete') {
             this.raycaster.setFromCamera(this.mouse, this.sceneManager.camera);
             const intersects = this.raycaster.intersectObjects(this.homeRenderer.interactables, false);
             if (intersects.length > 0) {
                 const userData = intersects[0].object.userData;
-                if (this.mode === 'delete') {
-                    this.deleteObject(userData);
-                } else if (this.mode === 'window' && userData.type === 'wall') {
-                    this.addWindow(userData);
-                }
+                this.deleteObject(userData);
                 return;
             }
         }
@@ -326,17 +322,7 @@ export class Editor {
         this.notify({ type: 'content_change' });
     }
 
-    addWindow(wallData) {
-        const wall = wallData.obj;
-        if (!wall) return;
-        if (!wall.windows) wall.windows = [];
-        wall.windows.push({
-            id: Math.random().toString(),
-            p1: wall.p1, p2: wall.p2,
-            height: 1.0, bottom_height: 1.0
-        });
-        this.refresh();
-    }
+
 
     deleteObject(data) {
         const floor = this.getFloorById(data.floorId);

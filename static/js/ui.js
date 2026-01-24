@@ -32,13 +32,7 @@ export class UI {
                 this.app.homeRenderer.setGizmoVisibility(true);
         });
 
-        this.createButton('Add Window', () => {
-            this.editor.setEnabled(true);
-            this.editor.setMode('window');
-            this.app.controls.enabled = false;
-            if (this.app.homeRenderer.setGizmoVisibility)
-                this.app.homeRenderer.setGizmoVisibility(true);
-        });
+
 
         this.createButton('Add Light', () => {
             this.editor.setEnabled(true);
