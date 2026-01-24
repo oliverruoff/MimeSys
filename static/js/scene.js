@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export class SceneManager {
-    constructor(container) {
+    constructor(container, showGrid = true) {
         this.container = container;
         this.scene = new THREE.Scene();
         // Dark Grey Background
@@ -35,8 +35,10 @@ export class SceneManager {
         this.scene.add(fill);
 
         // Grid (Subtle)
-        const grid = new THREE.GridHelper(50, 50, 0x666666, 0x444444);
-        this.scene.add(grid);
+        if (showGrid) {
+            const grid = new THREE.GridHelper(50, 50, 0x666666, 0x444444);
+            this.scene.add(grid);
+        }
 
         // Base Plate - Frosted Glass Disk (Restored)
         this.addBasePlate();

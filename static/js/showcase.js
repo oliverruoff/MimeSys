@@ -5,7 +5,7 @@ import { HomeRenderer } from './home.js';
 class ShowcaseApp {
     constructor() {
         this.container = document.getElementById('canvas-container');
-        this.sceneManager = new SceneManager(this.container);
+        this.sceneManager = new SceneManager(this.container, false); // No Grid
         this.homeRenderer = new HomeRenderer(this.sceneManager.scene);
 
         // Setup simple orbiting camera
