@@ -180,8 +180,11 @@ export class HomeRenderer {
         const viewDir = new THREE.Vector3().subVectors(target, camera.position).normalize();
         const distToTarget = camera.position.distanceTo(target);
 
-        const thresholdCenter = distToTarget + 1.0;
-        const buffer = 0.5;
+        // Adjust threshold: walls closer than (Target - offset) are lowered.
+        // Previously +1.0, which lowered walls behind the target (side/back in small rooms).
+        // Now -0.5: Only walls clearly in FRONT of the target are lowered. Side walls stay up.
+        const thresholdCenter = distToTarget - 0.5;
+        const buffer = 0.25;
 
         this.interactables.forEach(obj => {
             if (obj.userData.type === 'wall' && obj.userData.obj) {

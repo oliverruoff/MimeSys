@@ -35,20 +35,26 @@ export class Controls {
     }
 
     onKeyDown(e) {
+        console.log('Controls.onKeyDown: key=', e.key, 'enabled=', this.enabled); // DEBUG
         if (!this.enabled) return;
 
         const speed = 0.5;
-        const forward = new THREE.Vector3(
-            -Math.sin(this.theta),
-            0,
-            -Math.cos(this.theta)
-        ).normalize();
 
-        const right = new THREE.Vector3(
-            -Math.sin(this.theta - Math.PI / 2),
-            0,
-            -Math.cos(this.theta - Math.PI / 2)
-        ).normalize();
+        // Fix 2: Use actual Camera direction independent of theta/phi variables
+        // This ensures movement is always relative to what the user sees
+        const forward = new THREE.Vector3();
+        this.camera.getWorldDirection(forward);
+        forward.y = 0;
+        forward.normalize();
+
+        const right = new THREE.Vector3();
+        right.crossVectors(forward, this.camera.up).normalize();
+
+        console.log('Arrow key pressed:', e.key); // DEBUG
+        console.log('Theta:', this.theta, 'Phi:', this.phi); // DEBUG
+        console.log('Forward vector:', forward); // DEBUG
+        console.log('Right vector:', right); // DEBUG
+        console.log('Target before:', this.target.clone()); // DEBUG
 
         switch (e.key) {
             case 'ArrowUp':
@@ -64,6 +70,8 @@ export class Controls {
                 this.target.addScaledVector(right, speed);
                 break;
         }
+
+        console.log('Target after:', this.target.clone()); // DEBUG
         this.updateCamera();
     }
 

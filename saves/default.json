@@ -234,13 +234,13 @@
           "name": "New Light",
           "position": {
             "x": 4.4,
-            "y": 0.2,
+            "y": 0.3,
             "z": -5.4
           },
           "state": {
             "on": true,
             "color": "#f2a36e",
-            "intensity": 2.3
+            "intensity": 0.4
           }
         },
         {
@@ -277,10 +277,10 @@
           "position": {
             "x": -4.0,
             "y": 2.0,
-            "z": -2.0
+            "z": -1.0
           },
           "state": {
-            "on": false,
+            "on": true,
             "color": "#45d4f7",
             "intensity": 1.0
           }
@@ -291,7 +291,7 @@
           "position": {
             "x": -4.0,
             "y": 2.1,
-            "z": 1.0
+            "z": 2.3
           },
           "state": {
             "on": true,

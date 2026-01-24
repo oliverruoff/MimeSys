@@ -100,6 +100,12 @@ export class UI {
         this.createButton('Undo', () => this.editor.undo());
         this.createButton('Save', () => this.editor.save());
 
+        // Initialize: Start in View mode (controls enabled, editor disabled)
+        console.log('UI Init: Setting controls.enabled = true'); // DEBUG
+        this.editor.setEnabled(false);
+        this.app.controls.enabled = true;
+        console.log('UI Init: controls.enabled is now', this.app.controls.enabled); // DEBUG
+
         this.initToasts();
         this.initSidebar();
         this.initZoomControls();
@@ -330,10 +336,11 @@ export class UI {
 
         // Color Picker (Separate Row)
         const colorRow = document.createElement('div');
-        colorRow.className = 'flex items-center justify-between';
+        colorRow.className = 'flex items-center gap-4';
 
         const colorLabel = document.createElement('span');
-        colorLabel.className = 'text-xs text-gray-400 font-bold mr-4'; // Increased spacing
+        colorLabel.className = 'text-xs text-gray-400 font-bold';
+        colorLabel.style.marginRight = '16px'; // Force spacing with inline style
         colorLabel.textContent = 'Color';
         colorRow.appendChild(colorLabel);
 
