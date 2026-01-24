@@ -113,15 +113,19 @@ export class UI {
 
     initZoomControls() {
         const zoomContainer = document.createElement('div');
-        // Joined container, frosted glass, rounded corners, shadow
-        zoomContainer.className = 'absolute bottom-8 right-8 flex flex-col z-10 rounded-xl overflow-hidden shadow-lg border border-white/10 backdrop-blur-xl';
-        zoomContainer.style.background = 'rgba(255, 255, 255, 0.05)';
+        // Use the same .glass class as the main toolbar for consistency
+        zoomContainer.className = 'glass absolute bottom-8 right-8 flex flex-col z-10 p-0 overflow-hidden';
+        // Tweak border radius for this specifically if needed, but glass class handles most
+        zoomContainer.style.borderRadius = '12px';
 
         const createZoomBtn = (text, onClick, isFirst) => {
             const btn = document.createElement('button');
-            // Square, transparent, hover effect
-            btn.className = 'w-10 h-10 flex items-center justify-center text-xl text-white outline-none transition-colors hover:bg-white/10 active:bg-white/20';
-            btn.style.fontFamily = 'system-ui, -apple-system, sans-serif'; // Apple-like font
+            // Explicitly reset background and border to avoid 'oldschool' default button look
+            btn.className = 'w-10 h-10 flex items-center justify-center text-xl text-white outline-none transition-colors hover:bg-white/10 active:bg-white/20 cursor-pointer bg-transparent border-none';
+            btn.style.background = 'transparent';
+            btn.style.border = 'none';
+            btn.style.color = 'white';
+            btn.style.fontFamily = 'system-ui, -apple-system, sans-serif';
             btn.style.fontWeight = '300';
             btn.textContent = text;
             btn.onclick = onClick;
