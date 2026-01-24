@@ -1,0 +1,435 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+/* .measurement-label {
+    position: fixed;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(220, 38, 38, 0.9);
+    Red-600
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    Large
+    font-weight: 700;
+    pointer-events: none;
+    z-index: 100000;
+    display: none;
+    Hidden by default
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    Removed in favor of inline styles in index.html to ensure visibility and layout correctness.
+} */
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #111827;
+    /* Dark Gray */
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#canvas-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* Glassmorphism Toolbar - Transparent Frosted */
+.glass {
+    background: rgba(255, 255, 255, 0.05);
+    /* Almost transparent */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    padding: 6px;
+}
+
+/* Dark Theme Buttons */
+.btn-glass {
+    background: transparent;
+    color: #e5e7eb;
+    border: 1px solid transparent;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-glass:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.02);
+}
+
+.btn-glass:active {
+    transform: scale(0.98);
+}
+
+.btn-active {
+    background: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px);
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.w-px {
+    width: 1px;
+}
+
+.bg-white\/20 {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.mx-1 {
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+}
+
+/* Utilities */
+.absolute {
+    position: absolute;
+}
+
+.bottom-4 {
+    bottom: 2rem;
+}
+
+.left-1\/2 {
+    left: 50%;
+}
+
+.transform {
+    transform: translateX(-50%);
+}
+
+.-translate-x-1\/2 {
+    transform: translateX(-50%);
+}
+
+.rounded-lg {
+    border-radius: 1rem;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.max-w-4xl {
+    max-width: 56rem;
+}
+
+.z-10 {
+    z-index: 10;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.font-bold {
+    font-weight: 600;
+}
+
+.items-center {
+    align-items: center;
+}
+
+/* Status / Floor Indicator */
+.bg-gray-800\/50 {
+    background: rgba(0, 0, 0, 0.2);
+    color: #e5e7eb;
+    padding: 6px 12px;
+}
+
+/* Missing Utilities for Zoom Controls */
+.right-8 {
+    right: 2rem;
+}
+
+.bottom-8 {
+    bottom: 2rem;
+}
+
+.rounded-xl {
+    border-radius: 0.75rem;
+}
+
+.shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.backdrop-blur-xl {
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+}
+
+.overflow-hidden {
+    overflow: hidden;
+}
+
+.border-white\/10 {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.w-10 {
+    width: 2.5rem;
+}
+
+.h-10 {
+    height: 2.5rem;
+}
+
+.hover\:bg-white\/10:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.active\:bg-white\/20:active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.transition-colors {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+
+/* Toast Notifications */
+#toast-container {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.toast {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.4s;
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+    pointer-events: auto;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* Sidebar - Dark Mode */
+.sidebar {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 280px;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    /* Scrollbar Style */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    backdrop-filter: blur(5px);
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+.light-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    color: white;
+}
+
+.form-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-input {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 4px;
+    border-radius: 4px;
+    width: 100px;
+    font-size: 13px;
+}
+
+.input-glass {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: white;
+    padding: 4px 8px;
+    font-size: 12px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.2s;
+    outline: none;
+    text-align: center;
+}
+
+.input-glass:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+.form-range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.form-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #3b82f6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+}
+
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 18px;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #4b5563;
+    border-radius: 18px;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: .4s;
+}
+
+input:checked+.slider {
+    background-color: #3b82f6;
+}
+
+input:checked+.slider:before {
+    transform: translateX(14px);
+}
+
+.color-picker {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid white;
+    overflow: hidden;
+}
+
+.color-picker input {
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.icon-btn {
+    border: none;
+    background: none;
+    font-size: 18px;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.icon-btn:hover {
+    color: #feca00;
+}

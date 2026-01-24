@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D House View</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #222222;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://esm.sh/three@0.160.0",
+                "three/examples/jsm/controls/OrbitControls.js": "https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js"
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="canvas-container"></div>
+    <script type="module" src="/static/js/showcase.js"></script>
+</body>
+
+</html>
