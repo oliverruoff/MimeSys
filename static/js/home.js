@@ -174,6 +174,46 @@ export class HomeRenderer {
         }
     }
 
+    updateLights(home) {
+        if (!home || !home.floors) return;
+
+        home.floors.forEach(floor => {
+            if (!floor.lights) return;
+            floor.lights.forEach(lightData => {
+                // Find corresponding mesh/light in the scene
+                // We stored { type: 'light', id, homeId, floorId, state, name, mesh } in userData
+                const obj = this.interactables.find(o =>
+                    o.userData.type === 'light' && o.userData.id === lightData.id
+                );
+
+                if (obj) {
+                    const state = lightData.state;
+                    // console.log(`DEBUG: Updating light ${lightData.name}: on=${state.on}`);
+                    // Update material emissive
+                    if (obj.material) {
+                        obj.material.color.setHex(state.on ? parseInt(state.color.replace('#', '0x')) : 0x4a4a4a);
+                        obj.material.emissive.setHex(state.on ? parseInt(state.color.replace('#', '0x')) : 0x000000);
+                        obj.material.emissiveIntensity = state.on ? 1 : 0;
+                    }
+
+                    // Update PointLight if it exists (it's a child of the parent group usually)
+                    if (obj.parent) {
+                        obj.parent.children.forEach(child => {
+                            // Match position to identify the point light paired with this mesh
+                            if (child.isPointLight && child.position.equals(obj.position)) {
+                                child.color.setHex(parseInt(state.color.replace('#', '0x')));
+                                child.intensity = state.on ? state.intensity * 5 : 0;
+                            }
+                        });
+                    }
+
+                    // Update internal state
+                    obj.userData.state = state;
+                }
+            });
+        });
+    }
+
     updateSmartWalls(camera, target) {
         if (!this.interactables) return;
 

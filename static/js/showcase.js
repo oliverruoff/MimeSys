@@ -37,12 +37,37 @@ class ShowcaseApp {
                 if (this.homeRenderer.setGizmoVisibility) {
                     this.homeRenderer.setGizmoVisibility(false);
                 }
+
+                // Start Polling for Light Updates
+                this.pollUpdates();
             }
         } catch (e) {
             console.error("Error loading home:", e);
         }
 
         this.animate();
+    }
+
+    async pollUpdates() {
+        setInterval(async () => {
+            if (!this.home) return;
+            try {
+                // Fetch latest home state
+                // Note: In a production app, we might want a lightweight 'status' endpoint
+                // but for now re-fetching the home JSON is fine for this scale.
+                const updatedHome = await fetch(`/api/homes/${this.home.id}`).then(r => r.json());
+
+                if (updatedHome && updatedHome.id) {
+                    // Update lights
+                    this.homeRenderer.updateLights(updatedHome);
+
+                    // Update local ref
+                    this.home = updatedHome;
+                }
+            } catch (err) {
+                console.warn("Poll failed", err);
+            }
+        }, 1000); // Poll every 1 second
     }
 
     animate() {

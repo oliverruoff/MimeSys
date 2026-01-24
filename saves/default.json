@@ -301,16 +301,30 @@
         },
         {
           "id": "2b481cd1-4cf2-4638-8964-66ecb955ed2b",
-          "name": "New Light",
+          "name": "wzlicht",
           "position": {
             "x": -2.1,
-            "y": 0.1,
+            "y": 0.4,
             "z": -5.5
           },
           "state": {
             "on": true,
-            "color": "#e2975a",
+            "color": "#ff0019",
             "intensity": 1.0
+          }
+        },
+        {
+          "id": "bab87ea1-b97d-4ab5-aaff-8b72d3aede55",
+          "name": "test.light",
+          "position": {
+            "x": 1.5,
+            "y": 2.0,
+            "z": 10.0
+          },
+          "state": {
+            "on": true,
+            "color": "#4dff00",
+            "intensity": 5.0
           }
         }
       ],
