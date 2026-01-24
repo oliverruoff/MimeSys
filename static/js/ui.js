@@ -8,12 +8,8 @@ export class UI {
         this.container.className = 'glass absolute bottom-4 left-1/2 transform -translate-x-1/2 p-2 rounded-lg flex flex-wrap gap-2 justify-center max-w-4xl z-10';
         document.body.appendChild(this.container);
 
-        this.createButton('New Home', async () => {
-            if (confirm('Create new home? Unsaved changes will be lost.')) {
-                await fetch('/api/homes/reset', { method: 'POST' });
-                window.location.reload();
-            }
-        });
+
+
 
         this.createButton('View', () => {
             this.editor.setEnabled(false);
@@ -94,6 +90,24 @@ export class UI {
         this.createButton('Undo', () => this.editor.undo());
         this.createButton('Save', () => this.editor.save());
 
+        this.createSeparator();
+
+        const resetBtn = this.createButton('New Home', async () => {
+            if (confirm('⚠️ Reset EVERYTHING?\n\nThis will delete your current home and start fresh.\nUnsaved changes will be lost forever.')) {
+                await fetch('/api/homes/reset', { method: 'POST' });
+                window.location.reload();
+            }
+        });
+        // Make it red and distinct
+        resetBtn.style.background = 'rgba(220, 38, 38, 0.4)'; // Red 600
+        resetBtn.style.border = '1px solid rgba(220, 38, 38, 0.6)';
+        resetBtn.style.backdropFilter = 'blur(4px)';
+        resetBtn.style.color = 'white'; // Ensure text is white
+
+        // Hover effects
+        resetBtn.onmouseenter = () => resetBtn.style.background = 'rgba(220, 38, 38, 0.8)';
+        resetBtn.onmouseleave = () => resetBtn.style.background = 'rgba(220, 38, 38, 0.4)';
+
         // Initialize: Start in View mode (controls enabled, editor disabled)
         console.log('UI Init: Setting controls.enabled = true'); // DEBUG
         this.editor.setEnabled(false);
@@ -136,6 +150,22 @@ export class UI {
         zoomContainer.appendChild(zoomIn);
         zoomContainer.appendChild(zoomOut);
         document.body.appendChild(zoomContainer);
+    }
+
+    initNewHomeButton() {
+        const btn = document.createElement('button');
+        btn.textContent = 'New Home';
+        // Red transparent background, bottom right placement
+        btn.className = 'absolute bottom-8 right-24 glass px-4 py-2 rounded-lg font-bold text-white transition hover:bg-red-600/80 bg-red-600/40 z-20 cursor-pointer border-none backdrop-blur-md';
+        btn.style.border = '1px solid rgba(255, 0, 0, 0.3)';
+
+        btn.onclick = async () => {
+            if (confirm('⚠️ DANGER: Reset EVERYTHING?\n\nThis will delete your current home and start fresh.\nUnsaved changes will be lost forever.')) {
+                await fetch('/api/homes/reset', { method: 'POST' });
+                window.location.reload();
+            }
+        };
+        document.body.appendChild(btn);
     }
 
     updateFloorIndicator(level) {
