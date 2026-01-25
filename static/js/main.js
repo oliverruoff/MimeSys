@@ -16,7 +16,15 @@ class App {
         this.editor = new Editor(this.sceneManager, this.homeRenderer);
         this.ui = new UI(this);
 
-        this.editor.setNotificationCallback((msg) => this.ui.showNotification ? this.ui.showNotification(msg) : console.log(msg));
+        this.editor.setNotificationCallback((msg) => {
+            if (typeof msg === 'object' && msg.type === 'content_change') {
+                this.ui.updateSidebar();
+            } else if (this.ui.showNotification) {
+                this.ui.showNotification(msg);
+            } else {
+                console.log("Notify:", msg);
+            }
+        });
 
         this.init();
     }

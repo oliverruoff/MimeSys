@@ -206,17 +206,30 @@ export class UI {
         this.sidebar = document.createElement('div');
         this.sidebar.className = 'sidebar glass';
         document.body.appendChild(this.sidebar);
+
+        // Cube sidebar on the left
+        this.cubeSidebar = document.createElement('div');
+        this.cubeSidebar.className = 'cube-sidebar glass';
+        document.body.appendChild(this.cubeSidebar);
+
         this.updateSidebar();
     }
 
     updateSidebar() {
+        // Update cube sidebar
+        if (this.cubeSidebar) {
+            this.cubeSidebar.innerHTML = '';
+            if (this.editor.selectedObject && this.editor.selectedObject.userData.type === 'cube') {
+                this.cubeSidebar.style.display = 'flex';
+                this.renderCubeProperties(this.editor.selectedObject);
+            } else {
+                this.cubeSidebar.style.display = 'none';
+            }
+        }
+
+        // Update lights sidebar
         if (!this.sidebar) return;
         this.sidebar.innerHTML = '';
-
-        if (this.editor.selectedObject && this.editor.selectedObject.userData.type === 'cube') {
-            this.renderCubeProperties(this.editor.selectedObject);
-            return;
-        }
 
         const currentFloor = this.editor.getCurrentFloor();
         if (!currentFloor) {
@@ -245,118 +258,212 @@ export class UI {
 
     renderCubeProperties(mesh) {
         const cube = mesh.userData.obj;
+        const currentFloor = this.editor.getCurrentFloor();
+        if (!currentFloor) return;
 
         const container = document.createElement('div');
-        container.className = 'p-2';
+        container.className = 'p-6 flex flex-col gap-12'; // More spacing, removed bottom padding
 
+        // Header: Name + Close + Delete
         const header = document.createElement('div');
-        header.className = 'flex justify-between items-center mb-4';
-        header.innerHTML = '<h3 class="font-bold">Edit Cube</h3>';
+        header.className = 'flex items-center justify-between gap-2';
 
-        const closeBtn = document.createElement('button');
-        closeBtn.innerHTML = '×';
-        closeBtn.className = 'text-xl hover:text-white text-gray-400';
-        closeBtn.onclick = () => {
-            this.editor.selectedObject = null;
-            if (this.editor.transformControl) this.editor.transformControl.detach(); // Assuming we might add TransformControls later
-            this.updateSidebar();
-        };
-        header.appendChild(closeBtn);
-        container.appendChild(header);
-
-        // Name
-        const nameRow = document.createElement('div');
-        nameRow.className = 'mb-2';
-        const nameLabel = document.createElement('div');
-        nameLabel.className = 'text-xs text-gray-400 mb-1';
-        nameLabel.textContent = 'Name';
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
-        nameInput.value = cube.name;
-        nameInput.className = 'input-glass w-full';
-        nameInput.onchange = (e) => { cube.name = e.target.value; };
-        nameRow.appendChild(nameLabel);
-        nameRow.appendChild(nameInput);
-        container.appendChild(nameRow);
-
-        // Position
-        const addVec3Input = (label, vec, onChange) => {
-            const row = document.createElement('div');
-            row.className = 'mb-2';
-            row.innerHTML = `<div class="text-xs text-gray-400 mb-1">${label}</div>`;
-            const flex = document.createElement('div');
-            flex.className = 'flex gap-2';
-
-            ['x', 'y', 'z'].forEach(axis => {
-                const inp = document.createElement('input');
-                inp.type = 'number';
-                inp.step = '0.1';
-                inp.value = vec[axis];
-                inp.className = 'input-glass w-full';
-                inp.onchange = (e) => {
-                    vec[axis] = parseFloat(e.target.value);
-                    onChange();
-                };
-                flex.appendChild(inp);
-            });
-            row.appendChild(flex);
-            container.appendChild(row);
-        };
-
-        addVec3Input('Position', cube.position, () => {
-            this.editor.refresh();
-            // Also need to re-attach transform controls if we had them, or just refresh mesh
-        });
-
-        addVec3Input('Size', cube.size, () => {
-            this.editor.refresh();
-        });
-
-        // Rotation
-        const rotRow = document.createElement('div');
-        rotRow.className = 'mb-2';
-        rotRow.innerHTML = `<div class="text-xs text-gray-400 mb-1">Rotation Y</div>`;
-        const rotInp = document.createElement('input');
-        rotInp.type = 'range';
-        rotInp.min = '0';
-        rotInp.max = Math.PI * 2;
-        rotInp.step = '0.1';
-        rotInp.value = cube.rotation;
-        rotInp.className = 'form-range w-full';
-        rotInp.oninput = (e) => {
-            cube.rotation = parseFloat(e.target.value);
+        nameInput.className = 'input-glass flex-grow';
+        nameInput.style.fontWeight = '500'; // Medium weight
+        nameInput.style.fontSize = '15px';
+        nameInput.value = cube.name || 'Untitled Cube';
+        nameInput.onchange = (e) => {
+            cube.name = e.target.value;
             this.editor.refresh();
         };
-        rotRow.appendChild(rotInp);
-        container.appendChild(rotRow);
+        header.appendChild(nameInput);
 
-        // Color
-        const colRow = document.createElement('div');
-        colRow.className = 'mb-4';
-        colRow.innerHTML = `<div class="text-xs text-gray-400 mb-1">Color</div>`;
-        const colInp = document.createElement('input');
-        colInp.type = 'color';
-        colInp.value = cube.color;
-        colInp.className = 'w-full h-8 cursor-pointer rounded';
-        colInp.oninput = (e) => {
-            cube.color = e.target.value;
-            this.editor.refresh();
-        };
-        colRow.appendChild(colInp);
-        container.appendChild(colRow);
-
-        // Delete
+        // Delete (Trash icon)
         const delBtn = document.createElement('button');
-        delBtn.textContent = 'Delete Cube';
-        delBtn.className = 'w-full py-2 bg-red-600/50 hover:bg-red-600/80 rounded text-white text-sm font-bold transition';
+        delBtn.className = 'icon-btn text-red-500/70 hover:text-red-500 transition-colors p-2';
+        delBtn.innerHTML = '🗑️';
+        delBtn.style.fontSize = '18px';
+        delBtn.title = 'Delete Cube';
         delBtn.onclick = () => {
             this.editor.deleteObject(mesh.userData);
             this.editor.selectedObject = null;
             this.updateSidebar();
         };
-        container.appendChild(delBtn);
+        header.appendChild(delBtn);
+        container.appendChild(header);
 
-        this.sidebar.appendChild(container);
+        // Position X / Z (Inputs like lights)
+        const posRow = document.createElement('div');
+        posRow.className = 'flex gap-2';
+
+        const createPosInput = (axis, label) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'flex items-center gap-2 flex-1';
+            const lbl = document.createElement('span');
+            lbl.className = 'text-xs text-gray-500 font-medium';
+            lbl.textContent = label;
+            wrap.appendChild(lbl);
+
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.step = '0.1';
+            inp.className = 'input-glass';
+            inp.style.width = '60px';
+            inp.value = cube.position[axis].toFixed(1);
+            inp.onchange = (e) => {
+                cube.position[axis] = parseFloat(e.target.value);
+                this.editor.refresh();
+            };
+            wrap.appendChild(inp);
+            return wrap;
+        };
+        posRow.appendChild(createPosInput('x', 'X'));
+        posRow.appendChild(createPosInput('z', 'Z'));
+
+        const posGroup = document.createElement('div');
+        posGroup.className = 'flex flex-col gap-10'; // Increased spacing between settings
+        const posHeader = document.createElement('div');
+        posHeader.className = 'text-[10px] uppercase tracking-widest text-gray-400 font-medium mb-8 border-b border-white/20 pb-2'; // Thinner font, stronger line
+        posHeader.textContent = 'Placement';
+        posGroup.appendChild(posHeader);
+        posGroup.appendChild(posRow);
+
+        container.appendChild(posGroup);
+
+        // Properties section
+        const propsCol = document.createElement('div');
+        propsCol.className = 'flex flex-col gap-16'; // Even more spacing between setting groups
+
+        // Helper for sliders
+        const createSliderRow = (label, value, min, max, step, onChange) => {
+            const row = document.createElement('div');
+            row.className = 'flex flex-col gap-6 py-4'; // Extra vertical space
+
+            // Subtle horizontal break
+            const hr = document.createElement('div');
+            hr.className = 'h-px w-full bg-white/10 mb-6';
+            row.appendChild(hr);
+
+            const labelRow = document.createElement('div');
+            labelRow.className = 'flex justify-between items-center';
+            const lbl = document.createElement('span');
+            lbl.className = 'text-[10px] uppercase tracking-widest text-gray-500 font-normal'; // Thinner text
+            lbl.textContent = label;
+            labelRow.appendChild(lbl);
+
+            const valSpan = document.createElement('span');
+            valSpan.className = 'text-xs text-blue-400 font-mono opacity-80';
+            valSpan.textContent = value.toFixed(1);
+            labelRow.appendChild(valSpan);
+            row.appendChild(labelRow);
+
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.min = min;
+            slider.max = max;
+            slider.step = step;
+            slider.value = value;
+            slider.className = 'form-range w-full';
+            slider.oninput = (e) => {
+                const val = parseFloat(e.target.value);
+                valSpan.textContent = val.toFixed(1);
+                onChange(val);
+                this.editor.refresh();
+            };
+            row.appendChild(slider);
+            return row;
+        };
+
+        // Height (Y Position)
+        const floorY = currentFloor.level * 2.5;
+        posGroup.appendChild(createSliderRow('Elevation', cube.position.y - floorY, 0, 10, 0.1, (val) => {
+            cube.position.y = floorY + val;
+        }));
+
+        // Dimensions Group
+        const dimGroup = document.createElement('div');
+        dimGroup.className = 'flex flex-col gap-10'; // Increased spacing between settings
+        const dimHeader = document.createElement('div');
+        dimHeader.className = 'text-[10px] uppercase tracking-widest text-gray-400 font-medium mb-8 border-b border-white/20 pb-2'; // Thinner
+        dimHeader.textContent = 'Dimensions';
+        dimGroup.appendChild(dimHeader);
+        dimGroup.appendChild(createSliderRow('Width', cube.size.x, 0.1, 10, 0.1, (val) => {
+            cube.size.x = val;
+        }));
+        dimGroup.appendChild(createSliderRow('Height', cube.size.y, 0.1, 10, 0.1, (val) => {
+            cube.size.y = val;
+        }));
+        dimGroup.appendChild(createSliderRow('Depth', cube.size.z, 0.1, 10, 0.1, (val) => {
+            cube.size.z = val;
+        }));
+        propsCol.appendChild(dimGroup);
+
+        // Rotation
+        const rotGroup = document.createElement('div');
+        rotGroup.className = 'flex flex-col gap-6';
+        const rotHeader = document.createElement('div');
+        rotHeader.className = 'text-[10px] uppercase tracking-widest text-gray-400 font-medium mb-8 border-b border-white/20 pb-2'; // Thinner
+        rotHeader.textContent = 'Rotation';
+        rotGroup.appendChild(rotHeader);
+        rotGroup.appendChild(createSliderRow('Angle', cube.rotation, 0, Math.PI * 2, 0.1, (val) => {
+            cube.rotation = val;
+        }));
+        propsCol.appendChild(rotGroup);
+
+        container.appendChild(propsCol);
+
+        // Color Group (Redesigned to match others)
+        const colorGroup = document.createElement('div');
+        colorGroup.className = 'flex flex-col gap-10'; // Increased spacing
+
+        const colorHeader = document.createElement('div');
+        colorHeader.className = 'text-[10px] uppercase tracking-widest text-gray-400 font-medium mb-8 border-b border-white/20 pb-2'; // Thinner + stronger line
+        colorHeader.textContent = 'Appearance';
+        colorGroup.appendChild(colorHeader);
+
+        const colorRow = document.createElement('div');
+        colorRow.className = 'flex items-center justify-between px-1';
+
+        // Add a line before color picker too
+        const colorHr = document.createElement('div');
+        colorHr.className = 'h-px w-full bg-white/10 mb-6';
+        colorGroup.appendChild(colorHr);
+
+        const colorLabel = document.createElement('span');
+        colorLabel.className = 'text-[10px] uppercase tracking-widest text-gray-500 font-normal';
+        colorLabel.textContent = 'Surface Color';
+        colorRow.appendChild(colorLabel);
+
+        const colorPickerWrap = document.createElement('div');
+        colorPickerWrap.className = 'color-picker';
+        colorPickerWrap.style.width = '28px';
+        colorPickerWrap.style.height = '28px';
+        colorPickerWrap.style.background = cube.color;
+        colorPickerWrap.style.borderRadius = '50%';
+        colorPickerWrap.style.border = '2px solid rgba(255,255,255,0.2)';
+
+        const colorInp = document.createElement('input');
+        colorInp.type = 'color';
+        colorInp.value = cube.color;
+        colorInp.style.opacity = '0';
+        colorInp.style.width = '100%';
+        colorInp.style.height = '100%';
+        colorInp.style.cursor = 'pointer';
+        colorInp.oninput = (e) => {
+            cube.color = e.target.value;
+            colorPickerWrap.style.background = e.target.value;
+            this.editor.refresh();
+        };
+        colorPickerWrap.appendChild(colorInp);
+        colorRow.appendChild(colorPickerWrap);
+        colorGroup.appendChild(colorRow);
+
+        propsCol.appendChild(colorGroup);
+        container.appendChild(propsCol);
+
+        this.cubeSidebar.appendChild(container);
     }
 
     createLightCard(light, floor) {

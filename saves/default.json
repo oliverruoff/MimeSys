@@ -328,6 +328,24 @@
           }
         }
       ],
+      "cubes": [
+        {
+          "id": "88c3a52a-11d0-45f1-b7b3-06eaef6fc36b",
+          "name": "Cube",
+          "position": {
+            "x": -0.5,
+            "y": 3.0,
+            "z": 11.0
+          },
+          "rotation": 3.9,
+          "size": {
+            "x": 3.0,
+            "y": 3.0,
+            "z": 4.2
+          },
+          "color": "#808080"
+        }
+      ],
       "floor_plan_image": null,
       "shape": [
         {
@@ -610,6 +628,7 @@
           }
         }
       ],
+      "cubes": [],
       "floor_plan_image": null,
       "shape": [
         {
@@ -956,6 +975,7 @@
           }
         }
       ],
+      "cubes": [],
       "floor_plan_image": null,
       "shape": [
         {

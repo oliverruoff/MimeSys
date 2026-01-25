@@ -112,10 +112,12 @@ export class Editor {
     }
 
     onMouseMove(e) {
-        if (!this.enabled) {
-            // console.log('onMouseMove: editor not enabled'); // Too noisy
-            return;
-        }
+        // Always update mouse position for raycasting, even if disabled
+        const rect = this.sceneManager.renderer.domElement.getBoundingClientRect();
+        this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        if (!this.enabled) return;
         const point = this.getRayIntersection(e);
         if (point) {
             this.cursorMesh.position.copy(point);
@@ -216,47 +218,39 @@ export class Editor {
     }
 
     onClick(e) {
-        console.log('onClick: enabled=', this.enabled, 'mode=', this.mode); // DEBUG
-        if (!this.enabled) return;
+        // Selection Logic - Works even in View mode (when editor disabled)
+        this.raycaster.setFromCamera(this.mouse, this.sceneManager.camera);
+        const rect = this.sceneManager.renderer.domElement.getBoundingClientRect();
+        this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera(this.mouse, this.sceneManager.camera);
+        const intersects = this.raycaster.intersectObjects(this.homeRenderer.interactables, false);
 
-        // Interaction with existing objects first
-        if (this.mode === 'delete') {
-            this.raycaster.setFromCamera(this.mouse, this.sceneManager.camera);
-            const intersects = this.raycaster.intersectObjects(this.homeRenderer.interactables, false);
-            if (intersects.length > 0) {
-                const userData = intersects[0].object.userData;
-                this.deleteObject(userData);
-                return;
+        if (intersects.length > 0) {
+            const hit = intersects[0].object;
+            if (hit.userData.type === 'cube') {
+                this.selectedObject = hit;
+                this.notify({ type: 'content_change' }); // Trigger sidebar update
+                if (!this.enabled) return; // If in View mode, selection is all we do
             }
-        }
-
-        const point = this.getRayIntersection(e);
-
-        // Selection Logic (when not in specific creation modes)
-        if (this.mode === 'none' || this.mode === 'delete') {
-            this.raycaster.setFromCamera(this.mouse, this.sceneManager.camera);
-            const intersects = this.raycaster.intersectObjects(this.homeRenderer.interactables, false);
-
-            if (intersects.length > 0) {
-                const hit = intersects[0].object;
-                if (hit.userData.type === 'cube') {
-                    this.selectedObject = hit;
-                    this.notify({ type: 'content_change' }); // Trigger sidebar update
-                    // Highlight effect could be added here
-                } else {
-                    this.selectedObject = null;
-                    this.notify({ type: 'content_change' });
-                }
-            } else {
-                // Deselect if clicked empty space
+        } else {
+            // Deselect if clicked empty space
+            if (this.selectedObject) {
                 this.selectedObject = null;
                 this.notify({ type: 'content_change' });
             }
+            if (!this.enabled) return;
         }
 
+        console.log('onClick: enabled=', this.enabled, 'mode=', this.mode); // DEBUG
+        if (!this.enabled) return;
+
+        const point = this.getRayIntersection(e);
         if (!point) return;
 
-        if (this.mode === 'wall') {
+        if (this.mode === 'cube') {
+            this.addCube(point);
+        } else if (this.mode === 'wall') {
             console.log('onClick: wall mode, startPoint=', this.startPoint, 'point=', point); // DEBUG
             if (!this.startPoint) {
                 this.startPoint = point;
@@ -284,8 +278,6 @@ export class Editor {
             } else if (this.floorPoints.length == 1) {
                 this.notify("Click loop points. Click start to finish.");
             }
-        } else if (this.mode === 'cube') {
-            this.addCube(point);
         }
     }
 
