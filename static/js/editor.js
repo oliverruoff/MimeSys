@@ -412,14 +412,25 @@ export class Editor {
 
     async save() {
         if (!this.homeRenderer.currentHome) return;
-        this.notify(`Saving to ${this.currentFilename || 'default.json'}...`);
+
+        let filename = prompt("Enter filename to save as:", this.currentFilename || 'default.json');
+
+        // User cancelled
+        if (filename === null) return;
+
+        // Ensure .json extension
+        if (!filename.toLowerCase().endsWith('.json')) {
+            filename += '.json';
+        }
+
+        this.notify(`Saving to ${filename}...`);
         try {
-            const filename = this.currentFilename || 'default.json';
             await fetch(`/api/saves/${filename}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(this.homeRenderer.currentHome)
             });
+            this.currentFilename = filename;
             this.notify("Saved!");
         } catch (e) {
             console.error(e);

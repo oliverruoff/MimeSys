@@ -21,6 +21,14 @@ export class Controls {
         // Keyboard controls
         window.addEventListener('keydown', (e) => this.onKeyDown(e));
 
+        // Keyboard states
+        this.keys = {
+            Space: false,
+            Control: false
+        };
+
+        window.addEventListener('keyup', (e) => this.onKeyUp(e));
+
         // Orbit params
         this.radius = 20;
         this.theta = Math.PI / 4;
@@ -35,8 +43,11 @@ export class Controls {
     }
 
     onKeyDown(e) {
-        console.log('Controls.onKeyDown: key=', e.key, 'enabled=', this.enabled); // DEBUG
         if (!this.enabled) return;
+
+        // Track keys
+        if (e.code === 'Space') this.keys.Space = true;
+        if (e.key === 'Control') this.keys.Control = true;
 
         const speed = 0.5;
 
@@ -50,33 +61,59 @@ export class Controls {
         const right = new THREE.Vector3();
         right.crossVectors(forward, this.camera.up).normalize();
 
-        console.log('Arrow key pressed:', e.key); // DEBUG
-        console.log('Theta:', this.theta, 'Phi:', this.phi); // DEBUG
-        console.log('Forward vector:', forward); // DEBUG
-        console.log('Right vector:', right); // DEBUG
-        console.log('Target before:', this.target.clone()); // DEBUG
-
         switch (e.key) {
             case 'ArrowUp':
+            case 'w':
+            case 'W':
                 this.target.addScaledVector(forward, speed);
+                this.updateCamera();
                 break;
             case 'ArrowDown':
+            case 's':
+            case 'S':
                 this.target.addScaledVector(forward, -speed);
+                this.updateCamera();
                 break;
             case 'ArrowLeft':
+            case 'a':
+            case 'A':
                 this.target.addScaledVector(right, -speed);
+                this.updateCamera();
                 break;
             case 'ArrowRight':
+            case 'd':
+            case 'D':
                 this.target.addScaledVector(right, speed);
+                this.updateCamera();
                 break;
         }
+    }
 
-        console.log('Target after:', this.target.clone()); // DEBUG
-        this.updateCamera();
+    onKeyUp(e) {
+        if (e.code === 'Space') this.keys.Space = false;
+        if (e.key === 'Control') this.keys.Control = false;
     }
 
     update() {
-        // Animation loop updates if needed
+        if (!this.enabled) return;
+
+        const speed = 0.2; // Per frame speed
+        let changed = false;
+
+        if (this.keys.Space) {
+            this.target.y += speed;
+            changed = true;
+        }
+        if (this.keys.Control) {
+            this.target.y -= speed;
+            changed = true;
+        }
+
+        if (changed) {
+            // Clamp height if needed, but user probably wants freedom
+            this.target.y = Math.max(0, this.target.y); // Keep above ground?
+            this.updateCamera();
+        }
     }
 
     updateCamera() {

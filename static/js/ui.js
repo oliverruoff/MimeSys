@@ -89,6 +89,7 @@ export class UI {
         this.createSeparator();
         this.createButton('Undo', () => this.editor.undo());
         this.createButton('Save', () => this.editor.save());
+        this.createButton('Load', () => this.createFileExplorerModal());
 
         this.createSeparator();
 
@@ -414,5 +415,85 @@ export class UI {
             toast.classList.remove('show');
             toast.addEventListener('transitionend', () => toast.remove());
         }, 3000);
+    }
+
+    async createFileExplorerModal() {
+        // Inject Styles if not present
+        if (!document.getElementById('file-explorer-styles')) {
+            const style = document.createElement('style');
+            style.id = 'file-explorer-styles';
+            style.textContent = `
+                .file-explorer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
+                .file-explorer-modal { background: rgba(30, 30, 30, 0.9); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; width: 500px; max-width: 90%; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.5); color: white; }
+                .file-explorer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+                .file-explorer-header h2 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+                .file-explorer-close { background: none; border: none; color: #9ca3af; font-size: 1.5rem; cursor: pointer; padding: 0 8px; transition: color 0.2s; }
+                .file-explorer-close:hover { color: white; }
+                .file-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; padding-right: 4px; max-height: 400px; }
+                .file-item { background: rgba(255, 255, 255, 0.05); padding: 12px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; transition: all 0.2s; border: 1px solid transparent; }
+                .file-item:hover { background: rgba(255, 255, 255, 0.1); transform: translateX(2px); }
+                .file-item.selected { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }
+                .file-name { flex-grow: 1; font-size: 0.95rem; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Fetch saves
+        let saves = [];
+        try {
+            saves = await fetch('/api/saves').then(r => r.json());
+        } catch (e) {
+            console.error(e);
+            this.showNotification("Failed to list saves");
+            return;
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'file-explorer-overlay';
+
+        const modal = document.createElement('div');
+        modal.className = 'file-explorer-modal';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'file-explorer-header';
+        header.innerHTML = `<h2>Load Project</h2><button class="file-explorer-close">×</button>`;
+        modal.appendChild(header);
+
+        // File List
+        const list = document.createElement('div');
+        list.className = 'file-list';
+
+        if (saves.length === 0) {
+            list.innerHTML = '<div style="text-align:center; padding: 20px; color: #6b7280;">No saved files found</div>';
+        }
+
+        saves.forEach(filename => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.innerHTML = `<span class="file-icon">📄</span><span class="file-name">${filename}</span>`;
+            item.onclick = () => {
+                this.editor.loadFromFile(filename);
+                document.body.removeChild(overlay);
+            };
+            list.appendChild(item);
+        });
+
+        modal.appendChild(list);
+        overlay.appendChild(modal);
+
+        // Close handlers
+        const close = () => {
+            if (document.body.contains(overlay)) {
+                document.body.removeChild(overlay);
+            }
+        };
+
+        header.querySelector('.file-explorer-close').onclick = close;
+        overlay.onclick = (e) => {
+            if (e.target === overlay) close();
+        };
+
+        document.body.appendChild(overlay);
     }
 }
