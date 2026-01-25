@@ -11,6 +11,9 @@ export class Editor {
         this.currentFilename = 'default.json';
         this.notificationHandler = null;
 
+        this.notificationHandler = null;
+        this.selectedObject = null;
+
         this.previewObj = null;
         this.startPoint = null;
         this.floorPoints = [];
@@ -228,6 +231,29 @@ export class Editor {
         }
 
         const point = this.getRayIntersection(e);
+
+        // Selection Logic (when not in specific creation modes)
+        if (this.mode === 'none' || this.mode === 'delete') {
+            this.raycaster.setFromCamera(this.mouse, this.sceneManager.camera);
+            const intersects = this.raycaster.intersectObjects(this.homeRenderer.interactables, false);
+
+            if (intersects.length > 0) {
+                const hit = intersects[0].object;
+                if (hit.userData.type === 'cube') {
+                    this.selectedObject = hit;
+                    this.notify({ type: 'content_change' }); // Trigger sidebar update
+                    // Highlight effect could be added here
+                } else {
+                    this.selectedObject = null;
+                    this.notify({ type: 'content_change' });
+                }
+            } else {
+                // Deselect if clicked empty space
+                this.selectedObject = null;
+                this.notify({ type: 'content_change' });
+            }
+        }
+
         if (!point) return;
 
         if (this.mode === 'wall') {
@@ -258,6 +284,8 @@ export class Editor {
             } else if (this.floorPoints.length == 1) {
                 this.notify("Click loop points. Click start to finish.");
             }
+        } else if (this.mode === 'cube') {
+            this.addCube(point);
         }
     }
 
@@ -322,6 +350,30 @@ export class Editor {
         this.notify({ type: 'content_change' });
     }
 
+    addCube(pos) {
+        if (!this.getCurrentFloor()) return;
+        const newCube = {
+            id: crypto.randomUUID(),
+            name: "Cube",
+            position: { x: pos.x, y: pos.y + 0.5, z: pos.z },
+            rotation: 0,
+            size: { x: 1, y: 1, z: 1 },
+            color: "#808080"
+        };
+
+        if (!this.getCurrentFloor().cubes) this.getCurrentFloor().cubes = [];
+        this.getCurrentFloor().cubes.push(newCube);
+
+        this.undoStack.push({
+            type: 'add_cube',
+            floorIndex: this.currentFloorIndex,
+            cube: newCube
+        });
+
+        this.refresh();
+        this.notify({ type: 'content_change' });
+    }
+
 
 
     deleteObject(data) {
@@ -350,6 +402,18 @@ export class Editor {
                     wallIndex: idx
                 });
                 floor.walls.splice(idx, 1);
+            }
+        } else if (data.type === 'cube') {
+            if (!floor.cubes) return;
+            const idx = floor.cubes.indexOf(data.obj);
+            if (idx > -1) {
+                this.undoStack.push({
+                    type: 'delete_cube',
+                    floorId: data.floorId,
+                    cube: JSON.parse(JSON.stringify(data.obj)),
+                    cubeIndex: idx
+                });
+                floor.cubes.splice(idx, 1);
             }
         }
 
@@ -393,6 +457,19 @@ export class Editor {
             const floor = this.getFloorById(action.floorId);
             if (floor) {
                 floor.lights.push(action.light);
+            }
+        } else if (action.type === 'add_cube') {
+            // Undo adding a cube = remove it
+            const floor = this.homeRenderer.currentHome.floors[action.floorIndex];
+            if (floor && floor.cubes) {
+                floor.cubes = floor.cubes.filter(c => c.id !== action.cube.id);
+            }
+        } else if (action.type === 'delete_cube') {
+            // Undo deleting a cube = add it back
+            const floor = this.getFloorById(action.floorId);
+            if (floor) {
+                if (!floor.cubes) floor.cubes = [];
+                floor.cubes.splice(action.cubeIndex, 0, action.cube);
             }
         }
 

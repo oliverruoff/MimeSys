@@ -46,6 +46,14 @@ export class UI {
                 this.app.homeRenderer.setGizmoVisibility(true);
         });
 
+        this.createButton('Add Cube', () => {
+            this.editor.setEnabled(true);
+            this.editor.setMode('cube');
+            this.app.controls.enabled = false;
+            if (this.app.homeRenderer.setGizmoVisibility)
+                this.app.homeRenderer.setGizmoVisibility(true);
+        });
+
         this.createSeparator();
 
         this.createButton('Smart Walls: OFF', (e) => {
@@ -205,6 +213,11 @@ export class UI {
         if (!this.sidebar) return;
         this.sidebar.innerHTML = '';
 
+        if (this.editor.selectedObject && this.editor.selectedObject.userData.type === 'cube') {
+            this.renderCubeProperties(this.editor.selectedObject);
+            return;
+        }
+
         const currentFloor = this.editor.getCurrentFloor();
         if (!currentFloor) {
             this.sidebar.innerHTML = '<div class="p-4 text-sm text-gray-400">No active floor</div>';
@@ -221,13 +234,129 @@ export class UI {
             empty.className = 'text-sm text-center p-4 text-gray-400';
             empty.textContent = "No lights on this floor";
             this.sidebar.appendChild(empty);
-            return;
+            // return; // Don't return, might want to show other things later
         }
 
         currentFloor.lights.forEach(light => {
             const card = this.createLightCard(light, currentFloor);
             this.sidebar.appendChild(card);
         });
+    }
+
+    renderCubeProperties(mesh) {
+        const cube = mesh.userData.obj;
+
+        const container = document.createElement('div');
+        container.className = 'p-2';
+
+        const header = document.createElement('div');
+        header.className = 'flex justify-between items-center mb-4';
+        header.innerHTML = '<h3 class="font-bold">Edit Cube</h3>';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '×';
+        closeBtn.className = 'text-xl hover:text-white text-gray-400';
+        closeBtn.onclick = () => {
+            this.editor.selectedObject = null;
+            if (this.editor.transformControl) this.editor.transformControl.detach(); // Assuming we might add TransformControls later
+            this.updateSidebar();
+        };
+        header.appendChild(closeBtn);
+        container.appendChild(header);
+
+        // Name
+        const nameRow = document.createElement('div');
+        nameRow.className = 'mb-2';
+        const nameLabel = document.createElement('div');
+        nameLabel.className = 'text-xs text-gray-400 mb-1';
+        nameLabel.textContent = 'Name';
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = cube.name;
+        nameInput.className = 'input-glass w-full';
+        nameInput.onchange = (e) => { cube.name = e.target.value; };
+        nameRow.appendChild(nameLabel);
+        nameRow.appendChild(nameInput);
+        container.appendChild(nameRow);
+
+        // Position
+        const addVec3Input = (label, vec, onChange) => {
+            const row = document.createElement('div');
+            row.className = 'mb-2';
+            row.innerHTML = `<div class="text-xs text-gray-400 mb-1">${label}</div>`;
+            const flex = document.createElement('div');
+            flex.className = 'flex gap-2';
+
+            ['x', 'y', 'z'].forEach(axis => {
+                const inp = document.createElement('input');
+                inp.type = 'number';
+                inp.step = '0.1';
+                inp.value = vec[axis];
+                inp.className = 'input-glass w-full';
+                inp.onchange = (e) => {
+                    vec[axis] = parseFloat(e.target.value);
+                    onChange();
+                };
+                flex.appendChild(inp);
+            });
+            row.appendChild(flex);
+            container.appendChild(row);
+        };
+
+        addVec3Input('Position', cube.position, () => {
+            this.editor.refresh();
+            // Also need to re-attach transform controls if we had them, or just refresh mesh
+        });
+
+        addVec3Input('Size', cube.size, () => {
+            this.editor.refresh();
+        });
+
+        // Rotation
+        const rotRow = document.createElement('div');
+        rotRow.className = 'mb-2';
+        rotRow.innerHTML = `<div class="text-xs text-gray-400 mb-1">Rotation Y</div>`;
+        const rotInp = document.createElement('input');
+        rotInp.type = 'range';
+        rotInp.min = '0';
+        rotInp.max = Math.PI * 2;
+        rotInp.step = '0.1';
+        rotInp.value = cube.rotation;
+        rotInp.className = 'form-range w-full';
+        rotInp.oninput = (e) => {
+            cube.rotation = parseFloat(e.target.value);
+            this.editor.refresh();
+        };
+        rotRow.appendChild(rotInp);
+        container.appendChild(rotRow);
+
+        // Color
+        const colRow = document.createElement('div');
+        colRow.className = 'mb-4';
+        colRow.innerHTML = `<div class="text-xs text-gray-400 mb-1">Color</div>`;
+        const colInp = document.createElement('input');
+        colInp.type = 'color';
+        colInp.value = cube.color;
+        colInp.className = 'w-full h-8 cursor-pointer rounded';
+        colInp.oninput = (e) => {
+            cube.color = e.target.value;
+            this.editor.refresh();
+        };
+        colRow.appendChild(colInp);
+        container.appendChild(colRow);
+
+        // Delete
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete Cube';
+        delBtn.className = 'w-full py-2 bg-red-600/50 hover:bg-red-600/80 rounded text-white text-sm font-bold transition';
+        delBtn.onclick = () => {
+            this.editor.deleteObject(mesh.userData);
+            this.editor.selectedObject = null;
+            this.updateSidebar();
+        };
+        container.appendChild(delBtn);
+
+        this.sidebar.appendChild(container);
     }
 
     createLightCard(light, floor) {

@@ -75,6 +75,13 @@ export class HomeRenderer {
                 this.createLight(light, floorGroup, home.id, floor.id);
             });
 
+            // Cubes
+            if (floor.cubes) {
+                floor.cubes.forEach(cube => {
+                    this.createCube(cube, floorGroup, floor.id);
+                });
+            }
+
             this.homeGroup.add(floorGroup);
         });
 
@@ -172,6 +179,25 @@ export class HomeRenderer {
             light.castShadow = true;
             parent.add(light);
         }
+    }
+
+    createCube(cubeData, parent, floorId) {
+        const { id, position, size, rotation, color, name } = cubeData;
+        const geo = new THREE.BoxGeometry(size.x, size.y, size.z);
+        const mat = new THREE.MeshStandardMaterial({ color: color });
+        const mesh = new THREE.Mesh(geo, mat);
+
+        const relativeY = position.y - parent.position.y;
+        mesh.position.set(position.x, relativeY, position.z);
+        mesh.rotation.y = rotation;
+
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+
+        mesh.userData = { type: 'cube', id, floorId, obj: cubeData };
+
+        this.interactables.push(mesh);
+        parent.add(mesh);
     }
 
     updateLights(home) {
