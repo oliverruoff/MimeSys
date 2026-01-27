@@ -262,17 +262,16 @@ export class UI {
         if (!currentFloor) return;
 
         const container = document.createElement('div');
-        container.className = 'p-6 flex flex-col gap-12'; // More spacing, removed bottom padding
+        container.className = 'prop-panel';
 
-        // Header: Name + Close + Delete
+        // Header: Name + Delete
         const header = document.createElement('div');
-        header.className = 'flex items-center justify-between gap-2';
+        header.className = 'prop-header';
 
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
-        nameInput.className = 'input-glass flex-grow';
-        nameInput.style.fontWeight = '500'; // Medium weight
-        nameInput.style.fontSize = '15px';
+        nameInput.className = 'input-glass flex-grow'; // Keeping input-glass as it is defined in css
+        nameInput.style.fontWeight = '500';
         nameInput.value = cube.name || 'Untitled Cube';
         nameInput.onchange = (e) => {
             cube.name = e.target.value;
@@ -280,11 +279,11 @@ export class UI {
         };
         header.appendChild(nameInput);
 
-        // Delete (Trash icon)
+        // Delete Button
         const delBtn = document.createElement('button');
-        delBtn.className = 'icon-btn text-red-500/70 hover:text-red-500 transition-colors p-2';
+        delBtn.className = 'icon-btn text-red-500/70 hover:text-red-500'; // Keep some util classes if they work, but mainly icon-btn
+        delBtn.style.color = '#ef4444'; // Red-500 manual fallback
         delBtn.innerHTML = '🗑️';
-        delBtn.style.fontSize = '18px';
         delBtn.title = 'Delete Cube';
         delBtn.onclick = () => {
             this.editor.deleteObject(mesh.userData);
@@ -294,176 +293,155 @@ export class UI {
         header.appendChild(delBtn);
         container.appendChild(header);
 
-        // Position X / Z (Inputs like lights)
-        const posRow = document.createElement('div');
-        posRow.className = 'flex gap-2';
+        // Position Section
+        const posSection = document.createElement('div');
+        posSection.className = 'prop-section';
+
+        const posHeader = document.createElement('div');
+        posHeader.className = 'prop-section-header';
+        posHeader.textContent = 'Placement';
+        posSection.appendChild(posHeader);
+
+        // X and Z Group
+        const xzRow = document.createElement('div');
+        xzRow.className = 'prop-row-dual';
 
         const createPosInput = (axis, label) => {
-            const wrap = document.createElement('div');
-            wrap.className = 'flex items-center gap-2 flex-1';
+            const group = document.createElement('div');
+            group.className = 'prop-input-group';
+
             const lbl = document.createElement('span');
-            lbl.className = 'text-xs text-gray-500 font-medium';
+            lbl.className = 'prop-input-label';
             lbl.textContent = label;
-            wrap.appendChild(lbl);
+            group.appendChild(lbl);
 
             const inp = document.createElement('input');
             inp.type = 'number';
             inp.step = '0.1';
-            inp.className = 'input-glass';
-            inp.style.width = '60px';
+            inp.className = 'prop-input-number';
             inp.value = cube.position[axis].toFixed(1);
             inp.onchange = (e) => {
                 cube.position[axis] = parseFloat(e.target.value);
                 this.editor.refresh();
             };
-            wrap.appendChild(inp);
-            return wrap;
-        };
-        posRow.appendChild(createPosInput('x', 'X'));
-        posRow.appendChild(createPosInput('z', 'Z'));
-
-        const posGroup = document.createElement('div');
-        posGroup.className = 'flex flex-col gap-10'; // Increased spacing between settings
-        const posHeader = document.createElement('div');
-        posHeader.className = 'text-[10px] uppercase tracking-widest text-gray-400 font-medium mb-8 border-b border-white/20 pb-2'; // Thinner font, stronger line
-        posHeader.textContent = 'Placement';
-        posGroup.appendChild(posHeader);
-        posGroup.appendChild(posRow);
-
-        container.appendChild(posGroup);
-
-        // Properties section
-        const propsCol = document.createElement('div');
-        propsCol.className = 'flex flex-col gap-16'; // Even more spacing between setting groups
-
-        // Helper for sliders
-        const createSliderRow = (label, value, min, max, step, onChange) => {
-            const row = document.createElement('div');
-            row.className = 'flex flex-col gap-6 py-4'; // Extra vertical space
-
-            // Subtle horizontal break
-            const hr = document.createElement('div');
-            hr.className = 'h-px w-full bg-white/10 mb-6';
-            row.appendChild(hr);
-
-            const labelRow = document.createElement('div');
-            labelRow.className = 'flex justify-between items-center';
-            const lbl = document.createElement('span');
-            lbl.className = 'text-[10px] uppercase tracking-widest text-gray-500 font-normal'; // Thinner text
-            lbl.textContent = label;
-            labelRow.appendChild(lbl);
-
-            const valSpan = document.createElement('span');
-            valSpan.className = 'text-xs text-blue-400 font-mono opacity-80';
-            valSpan.textContent = value.toFixed(1);
-            labelRow.appendChild(valSpan);
-            row.appendChild(labelRow);
-
-            const slider = document.createElement('input');
-            slider.type = 'range';
-            slider.min = min;
-            slider.max = max;
-            slider.step = step;
-            slider.value = value;
-            slider.className = 'form-range w-full';
-            slider.oninput = (e) => {
-                const val = parseFloat(e.target.value);
-                valSpan.textContent = val.toFixed(1);
-                onChange(val);
-                this.editor.refresh();
-            };
-            row.appendChild(slider);
-            return row;
+            group.appendChild(inp);
+            return group;
         };
 
-        // Height (Y Position)
+        xzRow.appendChild(createPosInput('x', 'X'));
+        xzRow.appendChild(createPosInput('z', 'Z'));
+        posSection.appendChild(xzRow);
+
+        // Elevation Slider
         const floorY = currentFloor.level * 2.5;
-        posGroup.appendChild(createSliderRow('Elevation', cube.position.y - floorY, 0, 10, 0.1, (val) => {
+        this.createPropSlider(posSection, 'Elevation', cube.position.y - floorY, 0, 10, 0.1, (val) => {
             cube.position.y = floorY + val;
-        }));
+        });
 
-        // Dimensions Group
-        const dimGroup = document.createElement('div');
-        dimGroup.className = 'flex flex-col gap-10'; // Increased spacing between settings
+        container.appendChild(posSection);
+
+        // Dimensions Section
+        const dimSection = document.createElement('div');
+        dimSection.className = 'prop-section';
+
         const dimHeader = document.createElement('div');
-        dimHeader.className = 'text-[10px] uppercase tracking-widest text-gray-400 font-medium mb-8 border-b border-white/20 pb-2'; // Thinner
+        dimHeader.className = 'prop-section-header';
         dimHeader.textContent = 'Dimensions';
-        dimGroup.appendChild(dimHeader);
-        dimGroup.appendChild(createSliderRow('Width', cube.size.x, 0.1, 10, 0.1, (val) => {
-            cube.size.x = val;
-        }));
-        dimGroup.appendChild(createSliderRow('Height', cube.size.y, 0.1, 10, 0.1, (val) => {
-            cube.size.y = val;
-        }));
-        dimGroup.appendChild(createSliderRow('Depth', cube.size.z, 0.1, 10, 0.1, (val) => {
-            cube.size.z = val;
-        }));
-        propsCol.appendChild(dimGroup);
+        dimSection.appendChild(dimHeader);
 
-        // Rotation
-        const rotGroup = document.createElement('div');
-        rotGroup.className = 'flex flex-col gap-6';
+        this.createPropSlider(dimSection, 'Width', cube.size.x, 0.1, 10, 0.1, (val) => cube.size.x = val);
+        this.createPropSlider(dimSection, 'Height', cube.size.y, 0.1, 10, 0.1, (val) => cube.size.y = val);
+        this.createPropSlider(dimSection, 'Depth', cube.size.z, 0.1, 10, 0.1, (val) => cube.size.z = val);
+
+        container.appendChild(dimSection);
+
+        // Rotation Section
+        const rotSection = document.createElement('div');
+        rotSection.className = 'prop-section';
+
         const rotHeader = document.createElement('div');
-        rotHeader.className = 'text-[10px] uppercase tracking-widest text-gray-400 font-medium mb-8 border-b border-white/20 pb-2'; // Thinner
+        rotHeader.className = 'prop-section-header';
         rotHeader.textContent = 'Rotation';
-        rotGroup.appendChild(rotHeader);
-        rotGroup.appendChild(createSliderRow('Angle', cube.rotation, 0, Math.PI * 2, 0.1, (val) => {
-            cube.rotation = val;
-        }));
-        propsCol.appendChild(rotGroup);
+        rotSection.appendChild(rotHeader);
 
-        container.appendChild(propsCol);
+        this.createPropSlider(rotSection, 'Angle', cube.rotation, 0, Math.PI * 2, 0.1, (val) => cube.rotation = val);
 
-        // Color Group (Redesigned to match others)
-        const colorGroup = document.createElement('div');
-        colorGroup.className = 'flex flex-col gap-10'; // Increased spacing
+        container.appendChild(rotSection);
 
-        const colorHeader = document.createElement('div');
-        colorHeader.className = 'text-[10px] uppercase tracking-widest text-gray-400 font-medium mb-8 border-b border-white/20 pb-2'; // Thinner + stronger line
-        colorHeader.textContent = 'Appearance';
-        colorGroup.appendChild(colorHeader);
+        // Appearance Section
+        const appeSection = document.createElement('div');
+        appeSection.className = 'prop-section';
+
+        const appeHeader = document.createElement('div');
+        appeHeader.className = 'prop-section-header';
+        appeHeader.textContent = 'Appearance';
+        appeSection.appendChild(appeHeader);
 
         const colorRow = document.createElement('div');
-        colorRow.className = 'flex items-center justify-between px-1';
-
-        // Add a line before color picker too
-        const colorHr = document.createElement('div');
-        colorHr.className = 'h-px w-full bg-white/10 mb-6';
-        colorGroup.appendChild(colorHr);
+        colorRow.className = 'prop-color-row';
 
         const colorLabel = document.createElement('span');
-        colorLabel.className = 'text-[10px] uppercase tracking-widest text-gray-500 font-normal';
-        colorLabel.textContent = 'Surface Color';
+        colorLabel.className = 'prop-slider-label';
+        colorLabel.textContent = 'Color';
         colorRow.appendChild(colorLabel);
 
-        const colorPickerWrap = document.createElement('div');
-        colorPickerWrap.className = 'color-picker';
-        colorPickerWrap.style.width = '28px';
-        colorPickerWrap.style.height = '28px';
-        colorPickerWrap.style.background = cube.color;
-        colorPickerWrap.style.borderRadius = '50%';
-        colorPickerWrap.style.border = '2px solid rgba(255,255,255,0.2)';
+        const colorPreview = document.createElement('div');
+        colorPreview.className = 'prop-color-preview';
+        colorPreview.style.background = cube.color;
 
         const colorInp = document.createElement('input');
         colorInp.type = 'color';
+        colorInp.className = 'prop-color-input';
         colorInp.value = cube.color;
-        colorInp.style.opacity = '0';
-        colorInp.style.width = '100%';
-        colorInp.style.height = '100%';
-        colorInp.style.cursor = 'pointer';
         colorInp.oninput = (e) => {
             cube.color = e.target.value;
-            colorPickerWrap.style.background = e.target.value;
+            colorPreview.style.background = e.target.value;
             this.editor.refresh();
         };
-        colorPickerWrap.appendChild(colorInp);
-        colorRow.appendChild(colorPickerWrap);
-        colorGroup.appendChild(colorRow);
 
-        propsCol.appendChild(colorGroup);
-        container.appendChild(propsCol);
+        colorPreview.appendChild(colorInp);
+        colorRow.appendChild(colorPreview);
+        appeSection.appendChild(colorRow);
+
+        container.appendChild(appeSection);
 
         this.cubeSidebar.appendChild(container);
+    }
+
+    createPropSlider(parent, label, value, min, max, step, onChange) {
+        const row = document.createElement('div');
+        row.className = 'prop-slider-row';
+
+        const header = document.createElement('div');
+        header.className = 'prop-slider-header';
+
+        const lbl = document.createElement('span');
+        lbl.className = 'prop-slider-label';
+        lbl.textContent = label;
+        header.appendChild(lbl);
+
+        const valDisplay = document.createElement('span');
+        valDisplay.className = 'prop-slider-value';
+        valDisplay.textContent = value.toFixed(1);
+        header.appendChild(valDisplay);
+        row.appendChild(header);
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.className = 'form-range';
+        slider.min = min;
+        slider.max = max;
+        slider.step = step;
+        slider.value = value;
+        slider.oninput = (e) => {
+            const val = parseFloat(e.target.value);
+            valDisplay.textContent = val.toFixed(1);
+            onChange(val);
+            this.editor.refresh();
+        };
+        row.appendChild(slider);
+
+        parent.appendChild(row);
     }
 
     createLightCard(light, floor) {

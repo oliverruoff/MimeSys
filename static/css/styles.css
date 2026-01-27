@@ -444,3 +444,137 @@ input:checked+.slider:before {
 .icon-btn:hover {
     color: #feca00;
 }
+
+/* Cube Properties Panel & General Property Styling */
+.prop-panel {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.prop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.prop-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.prop-section-header {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+.prop-row-dual {
+    display: flex;
+    gap: 12px;
+}
+
+.prop-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.prop-input-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.3);
+    user-select: none;
+}
+
+.prop-input-number {
+    background: transparent;
+    border: none;
+    color: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    width: 100%;
+    outline: none;
+    text-align: right;
+}
+
+/* Sliders */
+.prop-slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.prop-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.prop-slider-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+}
+
+.prop-slider-value {
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 11px;
+    color: #60a5fa;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Color Picker */
+.prop-color-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 4px;
+}
+
+.prop-color-row:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.prop-color-preview {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.prop-color-input {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    opacity: 0;
+    cursor: pointer;
+}
