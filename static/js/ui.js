@@ -233,27 +233,45 @@ export class UI {
 
         const currentFloor = this.editor.getCurrentFloor();
         if (!currentFloor) {
-            this.sidebar.innerHTML = '<div class="p-4 text-sm text-gray-400">No active floor</div>';
+            const empty = document.createElement('div');
+            empty.style.padding = '20px';
+            empty.style.textAlign = 'center';
+            empty.style.color = 'rgba(255, 255, 255, 0.3)';
+            empty.style.fontSize = '13px';
+            empty.textContent = 'No active floor';
+            this.sidebar.appendChild(empty);
             return;
         }
 
+        // Header
+        const header = document.createElement('div');
+        header.className = 'lights-sidebar-header';
         const title = document.createElement('h3');
-        title.className = 'text-sm font-bold p-2 mb-2 border-b border-white/10';
+        title.className = 'lights-sidebar-title';
         title.textContent = `Lights (${currentFloor.lights.length})`;
-        this.sidebar.appendChild(title);
+        header.appendChild(title);
+        this.sidebar.appendChild(header);
+
+        // Lights container
+        const container = document.createElement('div');
+        container.className = 'lights-container';
 
         if (currentFloor.lights.length === 0) {
             const empty = document.createElement('div');
-            empty.className = 'text-sm text-center p-4 text-gray-400';
+            empty.style.textAlign = 'center';
+            empty.style.padding = '20px';
+            empty.style.color = 'rgba(255, 255, 255, 0.3)';
+            empty.style.fontSize = '13px';
             empty.textContent = "No lights on this floor";
-            this.sidebar.appendChild(empty);
-            // return; // Don't return, might want to show other things later
+            container.appendChild(empty);
+        } else {
+            currentFloor.lights.forEach(light => {
+                const card = this.createLightCard(light, currentFloor);
+                container.appendChild(card);
+            });
         }
 
-        currentFloor.lights.forEach(light => {
-            const card = this.createLightCard(light, currentFloor);
-            this.sidebar.appendChild(card);
-        });
+        this.sidebar.appendChild(container);
     }
 
     renderCubeProperties(mesh) {
@@ -450,12 +468,12 @@ export class UI {
 
         // Header: Name + Toggle + Delete
         const header = document.createElement('div');
-        header.className = 'flex items-center justify-between gap-2 mb-2';
+        header.className = 'prop-header';
 
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
-        nameInput.className = 'input-glass font-bold flex-grow';
-        nameInput.style.textAlign = 'left'; // Override center align for name
+        nameInput.className = 'input-glass flex-grow';
+        nameInput.style.fontWeight = '500';
         nameInput.value = light.name || 'Light';
         nameInput.onchange = (e) => {
             light.name = e.target.value;
@@ -466,6 +484,7 @@ export class UI {
         // Toggle Switch
         const toggleLabel = document.createElement('label');
         toggleLabel.className = 'toggle';
+        toggleLabel.style.flexShrink = '0';
         const toggleInput = document.createElement('input');
         toggleInput.type = 'checkbox';
         toggleInput.checked = light.state.on;
@@ -481,11 +500,11 @@ export class UI {
 
         // Delete
         const delBtn = document.createElement('button');
-        delBtn.className = 'icon-btn text-red-400 hover:text-red-300';
-        delBtn.innerHTML = '×';
+        delBtn.className = 'icon-btn';
+        delBtn.style.color = '#ef4444';
+        delBtn.innerHTML = '🗑️';
         delBtn.title = 'Remove Light';
         delBtn.onclick = () => {
-            // Use Editor's delete logic to ensure clean removal
             this.editor.deleteObject({ type: 'light', id: light.id, floorId: floor.id });
             this.updateSidebar();
         };
@@ -493,116 +512,105 @@ export class UI {
 
         card.appendChild(header);
 
-        // Position X / Z
-        const posRow = document.createElement('div');
-        posRow.className = 'flex gap-2 mb-2';
+        // Position Section
+        const posSection = document.createElement('div');
+        posSection.className = 'prop-section';
+
+        const posHeader = document.createElement('div');
+        posHeader.className = 'prop-section-header';
+        posHeader.textContent = 'Placement';
+        posSection.appendChild(posHeader);
+
+        // X and Z inputs
+        const xzRow = document.createElement('div');
+        xzRow.className = 'prop-row-dual';
 
         const createPosInput = (axis, label) => {
-            const wrap = document.createElement('div');
-            wrap.className = 'flex items-center gap-2'; // Increased gap
+            const group = document.createElement('div');
+            group.className = 'prop-input-group';
 
             const lbl = document.createElement('span');
-            lbl.className = 'text-xs text-gray-400 w-3 font-bold';
+            lbl.className = 'prop-input-label';
             lbl.textContent = label;
-            wrap.appendChild(lbl);
+            group.appendChild(lbl);
 
             const inp = document.createElement('input');
             inp.type = 'number';
             inp.step = '0.1';
-            // Frosted glass input style
-            inp.className = 'input-glass';
-            inp.style.width = '50px';
+            inp.className = 'prop-input-number';
             inp.value = light.position[axis].toFixed(1);
             inp.onchange = (e) => {
                 light.position[axis] = parseFloat(e.target.value);
                 this.editor.refresh();
             };
-            wrap.appendChild(inp);
-            return wrap;
+            group.appendChild(inp);
+            return group;
         };
 
-        posRow.appendChild(createPosInput('x', 'X'));
-        posRow.appendChild(createPosInput('z', 'Z'));
-        card.appendChild(posRow);
+        xzRow.appendChild(createPosInput('x', 'X'));
+        xzRow.appendChild(createPosInput('z', 'Z'));
+        posSection.appendChild(xzRow);
 
-        // Properties: Height + Brightness
-        const propsCol = document.createElement('div');
-        propsCol.className = 'flex flex-col gap-2 mb-2';
-
-        // Height
-        const heightRow = document.createElement('div');
-        heightRow.className = 'flex items-center gap-2';
-        const heightLabel = document.createElement('div');
-        heightLabel.className = 'text-xs text-gray-400 w-4';
-        heightLabel.textContent = 'H';
-        heightRow.appendChild(heightLabel);
-
-        const heightSlider = document.createElement('input');
-        heightSlider.type = 'range';
-        heightSlider.min = '0';
-        heightSlider.max = '2.5';
-        heightSlider.step = '0.1';
+        // Height slider
         const floorY = floor.level * 2.5;
-        heightSlider.value = (light.position.y - floorY).toFixed(1);
-        heightSlider.className = 'form-range flex-grow';
-        heightSlider.oninput = (e) => {
-            const relY = parseFloat(e.target.value);
-            light.position.y = floorY + relY;
-            this.editor.refresh();
-        };
-        heightRow.appendChild(heightSlider);
-        propsCol.appendChild(heightRow);
+        this.createPropSlider(posSection, 'Height', light.position.y - floorY, 0, 2.5, 0.1, (val) => {
+            light.position.y = floorY + val;
+        });
 
-        // Brightness
-        const briRow = document.createElement('div');
-        briRow.className = 'flex items-center gap-2';
-        const briLabel = document.createElement('div');
-        briLabel.className = 'text-xs text-gray-400 w-4';
-        briLabel.textContent = 'B';
-        briRow.appendChild(briLabel);
+        card.appendChild(posSection);
 
-        const briSlider = document.createElement('input');
-        briSlider.type = 'range';
-        briSlider.min = '0';
-        briSlider.max = '5';
-        briSlider.step = '0.1';
-        briSlider.value = light.state.intensity || 1.0;
-        briSlider.className = 'form-range flex-grow';
-        briSlider.oninput = (e) => {
-            light.state.intensity = parseFloat(e.target.value);
-            this.editor.refresh();
-        };
-        briRow.appendChild(briSlider);
-        propsCol.appendChild(briRow);
+        // Properties Section
+        const propsSection = document.createElement('div');
+        propsSection.className = 'prop-section';
 
-        card.appendChild(propsCol);
+        const propsHeader = document.createElement('div');
+        propsHeader.className = 'prop-section-header';
+        propsHeader.textContent = 'Properties';
+        propsSection.appendChild(propsHeader);
 
-        // Color Picker (Separate Row)
+        // Brightness slider
+        this.createPropSlider(propsSection, 'Brightness', light.state.intensity || 1.0, 0, 5, 0.1, (val) => {
+            light.state.intensity = val;
+        });
+
+        card.appendChild(propsSection);
+
+        // Appearance Section
+        const appeSection = document.createElement('div');
+        appeSection.className = 'prop-section';
+
+        const appeHeader = document.createElement('div');
+        appeHeader.className = 'prop-section-header';
+        appeHeader.textContent = 'Appearance';
+        appeSection.appendChild(appeHeader);
+
         const colorRow = document.createElement('div');
-        colorRow.className = 'flex items-center gap-4';
+        colorRow.className = 'prop-color-row';
 
         const colorLabel = document.createElement('span');
-        colorLabel.className = 'text-xs text-gray-400 font-bold';
-        colorLabel.style.marginRight = '16px'; // Force spacing with inline style
+        colorLabel.className = 'prop-slider-label';
         colorLabel.textContent = 'Color';
         colorRow.appendChild(colorLabel);
 
-        const colorWrapper = document.createElement('div');
-        colorWrapper.className = 'color-picker';
-        colorWrapper.style.backgroundColor = light.state.color;
+        const colorPreview = document.createElement('div');
+        colorPreview.className = 'prop-color-preview';
+        colorPreview.style.background = light.state.color;
 
-        const colorInput = document.createElement('input');
-        colorInput.type = 'color';
-        colorInput.value = light.state.color;
-        colorInput.oninput = (e) => {
+        const colorInp = document.createElement('input');
+        colorInp.type = 'color';
+        colorInp.className = 'prop-color-input';
+        colorInp.value = light.state.color;
+        colorInp.oninput = (e) => {
             light.state.color = e.target.value;
-            colorWrapper.style.backgroundColor = e.target.value;
+            colorPreview.style.background = e.target.value;
             this.editor.refresh();
         };
-        colorWrapper.appendChild(colorInput);
-        colorRow.appendChild(colorWrapper);
 
-        card.appendChild(colorRow);
+        colorPreview.appendChild(colorInp);
+        colorRow.appendChild(colorPreview);
+        appeSection.appendChild(colorRow);
+
+        card.appendChild(appeSection);
 
         return card;
     }

@@ -262,9 +262,10 @@ body {
     position: absolute;
     top: 24px;
     width: 300px;
-    max-height: calc(100vh - 100px);
+    max-height: calc(100vh - 160px);
     height: fit-content;
     overflow-y: auto;
+    overflow-x: hidden;
     z-index: 50;
     display: flex;
     flex-direction: column;
@@ -301,13 +302,38 @@ body {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
-    padding: 10px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 16px;
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
     color: white;
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.lights-sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lights-sidebar-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 600;
+    margin: 0;
+}
+
+.lights-container {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .form-group {
@@ -435,10 +461,15 @@ input:checked+.slider:before {
 .icon-btn {
     border: none;
     background: none;
-    font-size: 18px;
+    font-size: 16px;
     color: #9ca3af;
     cursor: pointer;
-    padding: 0 4px;
+    padding: 4px;
+    flex-shrink: 0;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .icon-btn:hover {
@@ -451,14 +482,29 @@ input:checked+.slider:before {
     display: flex;
     flex-direction: column;
     gap: 24px;
+    overflow: hidden;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 .prop-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
     margin-bottom: 8px;
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+
+.prop-header .input-glass {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.prop-header .toggle,
+.prop-header .icon-btn {
+    flex-shrink: 0;
 }
 
 .prop-section {
