@@ -5,12 +5,13 @@ export class UI {
         this.smartWallsEnabled = false;
 
         this.container = document.createElement('div');
-        this.container.className = 'glass absolute bottom-4 left-1/2 transform -translate-x-1/2 p-2 rounded-lg flex flex-wrap gap-2 justify-center max-w-4xl z-10';
+        this.container.className = 'glass absolute bottom-4 left-1/2 transform -translate-x-1/2 p-3 rounded-lg z-10';
+        this.container.style.display = 'flex';
+        this.container.style.gap = '8px';
+        this.container.style.alignItems = 'center';
         document.body.appendChild(this.container);
 
-
-
-
+        // View Mode
         this.createButton('View', () => {
             this.editor.setEnabled(false);
             this.app.controls.enabled = true;
@@ -20,7 +21,8 @@ export class UI {
 
         this.createSeparator();
 
-        this.createButton('Edit Walls', () => {
+        // Add Wall
+        this.createButton('Add Wall', () => {
             this.editor.setEnabled(true);
             this.editor.setMode('wall');
             this.app.controls.enabled = false;
@@ -28,8 +30,9 @@ export class UI {
                 this.app.homeRenderer.setGizmoVisibility(true);
         });
 
+        this.createSeparator();
 
-
+        // Add Light
         this.createButton('Add Light', () => {
             this.editor.setEnabled(true);
             this.editor.setMode('light');
@@ -38,14 +41,9 @@ export class UI {
                 this.app.homeRenderer.setGizmoVisibility(true);
         });
 
-        this.createButton('Custom Floor', () => {
-            this.editor.setEnabled(true);
-            this.editor.setMode('floor_poly');
-            this.app.controls.enabled = false;
-            if (this.app.homeRenderer.setGizmoVisibility)
-                this.app.homeRenderer.setGizmoVisibility(true);
-        });
+        this.createSeparator();
 
+        // Add Cube
         this.createButton('Add Cube', () => {
             this.editor.setEnabled(true);
             this.editor.setMode('cube');
@@ -56,6 +54,29 @@ export class UI {
 
         this.createSeparator();
 
+        // Add Ground
+        this.createButton('Add Ground', () => {
+            this.editor.setEnabled(true);
+            this.editor.setMode('floor_poly');
+            this.app.controls.enabled = false;
+            if (this.app.homeRenderer.setGizmoVisibility)
+                this.app.homeRenderer.setGizmoVisibility(true);
+        });
+
+        this.createSeparator();
+
+        // Delete
+        this.createButton('Delete', () => {
+            this.editor.setEnabled(true);
+            this.editor.setMode('delete');
+            this.app.controls.enabled = false;
+            if (this.app.homeRenderer.setGizmoVisibility)
+                this.app.homeRenderer.setGizmoVisibility(true);
+        });
+
+        this.createSeparator();
+
+        // Smart Walls Toggle
         this.createButton('Smart Walls: OFF', (e) => {
             this.smartWallsEnabled = !this.smartWallsEnabled;
             e.target.textContent = `Smart Walls: ${this.smartWallsEnabled ? 'ON' : 'OFF'}`;
@@ -68,40 +89,60 @@ export class UI {
                         o.scale.y = 1.0;
                         o.position.y = (o.userData.obj.height || 2.5) / 2;
                         o.userData.currentScale = 1.0; // Reset lerp state
+                    } else if (o.userData.type === 'cube') {
+                        o.scale.y = 1.0;
+                        const relativeY = o.userData.obj.position.y - o.parent.position.y;
+                        o.position.y = relativeY;
+                        o.userData.currentScale = 1.0; // Reset lerp state
                     }
                 });
             }
         });
 
         this.createSeparator();
-        this.createButton('Delete', () => {
-            this.editor.setEnabled(true);
-            this.editor.setMode('delete');
-            this.app.controls.enabled = false;
-            if (this.app.homeRenderer.setGizmoVisibility)
-                this.app.homeRenderer.setGizmoVisibility(true);
-        });
 
-        this.createSeparator();
-
-        this.createButton('Floor +', () => this.editor.addFloor());
-        this.createButton('▼', () => this.editor.switchFloor(-1));
-
-        this.floorIndicator = document.createElement('div');
-        this.floorIndicator.className = 'px-3 py-1 text-sm font-bold flex items-center justify-center bg-gray-800/50 rounded';
-        this.floorIndicator.textContent = 'Floor 0';
-        this.container.appendChild(this.floorIndicator);
-
-        this.createButton('▲', () => this.editor.switchFloor(1));
-
-        this.createSeparator();
+        // Undo Operation
         this.createButton('Undo', () => this.editor.undo());
-        this.createButton('Save', () => this.editor.save());
-        this.createButton('Load', () => this.createFileExplorerModal());
 
-        this.createSeparator();
+        // Initialize: Start in View mode (controls enabled, editor disabled)
+        console.log('UI Init: Setting controls.enabled = true'); // DEBUG
+        this.editor.setEnabled(false);
+        this.app.controls.enabled = true;
+        console.log('UI Init: controls.enabled is now', this.app.controls.enabled); // DEBUG
 
-        const resetBtn = this.createButton('New Home', async () => {
+        this.initToasts();
+        this.initSidebar();
+        this.initZoomControls();
+        this.initFloorNavigation();
+        this.initFileOperations();
+    }
+
+    initFileOperations() {
+        // Create file operations container
+        const fileOps = document.createElement('div');
+        fileOps.className = 'glass';
+        fileOps.style.position = 'absolute';
+        fileOps.style.top = '32px';
+        fileOps.style.left = '32px';
+        fileOps.style.display = 'flex';
+        fileOps.style.gap = '8px';
+        fileOps.style.padding = '8px';
+        fileOps.style.alignItems = 'center';
+        fileOps.style.borderRadius = '12px';
+        fileOps.style.zIndex = '10';
+        document.body.appendChild(fileOps);
+
+        // Save button
+        this.createButtonInContainer(fileOps, 'Save', () => this.editor.save());
+
+        // Load button
+        this.createButtonInContainer(fileOps, 'Load', () => this.createFileExplorerModal());
+
+        // Separator
+        this.createSeparatorInContainer(fileOps);
+
+        // New Home button (red and distinct)
+        const resetBtn = this.createButtonInContainer(fileOps, 'New Home', async () => {
             if (confirm('⚠️ Reset EVERYTHING?\n\nThis will delete your current home and start fresh.\nUnsaved changes will be lost forever.')) {
                 await fetch('/api/homes/reset', { method: 'POST' });
                 window.location.reload();
@@ -116,16 +157,37 @@ export class UI {
         // Hover effects
         resetBtn.onmouseenter = () => resetBtn.style.background = 'rgba(220, 38, 38, 0.8)';
         resetBtn.onmouseleave = () => resetBtn.style.background = 'rgba(220, 38, 38, 0.4)';
+    }
 
-        // Initialize: Start in View mode (controls enabled, editor disabled)
-        console.log('UI Init: Setting controls.enabled = true'); // DEBUG
-        this.editor.setEnabled(false);
-        this.app.controls.enabled = true;
-        console.log('UI Init: controls.enabled is now', this.app.controls.enabled); // DEBUG
+    initFloorNavigation() {
+        // Create floor navigation container
+        const floorNav = document.createElement('div');
+        floorNav.className = 'glass';
+        floorNav.style.position = 'absolute';
+        floorNav.style.bottom = '32px';
+        floorNav.style.left = '32px';
+        floorNav.style.display = 'flex';
+        floorNav.style.gap = '8px';
+        floorNav.style.padding = '8px';
+        floorNav.style.alignItems = 'center';
+        floorNav.style.borderRadius = '12px';
+        floorNav.style.zIndex = '10';
+        document.body.appendChild(floorNav);
 
-        this.initToasts();
-        this.initSidebar();
-        this.initZoomControls();
+        // Floor + button
+        this.createButtonInContainer(floorNav, 'Floor +', () => this.editor.addFloor());
+
+        // Down arrow
+        this.createButtonInContainer(floorNav, '▼', () => this.editor.switchFloor(-1));
+
+        // Floor indicator
+        this.floorIndicator = document.createElement('div');
+        this.floorIndicator.className = 'px-3 py-1 text-sm font-bold flex items-center justify-center bg-gray-800/50 rounded';
+        this.floorIndicator.textContent = 'Floor 0';
+        floorNav.appendChild(this.floorIndicator);
+
+        // Up arrow
+        this.createButtonInContainer(floorNav, '▲', () => this.editor.switchFloor(1));
     }
 
     initZoomControls() {
@@ -179,6 +241,23 @@ export class UI {
 
     updateFloorIndicator(level) {
         if (this.floorIndicator) this.floorIndicator.textContent = `Floor ${level}`;
+    }
+
+    createButtonInContainer(container, text, onClick, active = false) {
+        const btn = document.createElement('button');
+        btn.textContent = text;
+        btn.className = `px-3 py-1 btn-glass rounded text-sm transition cursor-pointer ${active ? 'btn-active' : ''}`;
+        btn.onclick = onClick;
+        container.appendChild(btn);
+        return btn;
+    }
+
+    createSeparatorInContainer(container) {
+        const sep = document.createElement('div');
+        sep.className = 'w-px bg-white/20';
+        sep.style.height = '24px';
+        sep.style.alignSelf = 'center';
+        container.appendChild(sep);
     }
 
     createButton(text, onClick, active = false) {

@@ -322,15 +322,23 @@ export class HomeRenderer {
         const buffer = 0.25;
 
         this.interactables.forEach(obj => {
-            if (obj.userData.type === 'wall' && obj.userData.obj) {
+            // Handle both walls and cubes
+            if ((obj.userData.type === 'wall' || obj.userData.type === 'cube') && obj.userData.obj) {
                 if (obj.parent && obj.parent.visible === false) return;
 
-                const wallPos = new THREE.Vector3();
-                obj.getWorldPosition(wallPos);
+                const objPos = new THREE.Vector3();
+                obj.getWorldPosition(objPos);
 
-                const toWall = new THREE.Vector3().subVectors(wallPos, camera.position);
-                const projectDist = toWall.dot(viewDir);
-                const originalHeight = obj.userData.obj.height || 2.5;
+                const toObj = new THREE.Vector3().subVectors(objPos, camera.position);
+                const projectDist = toObj.dot(viewDir);
+                
+                // Get original height based on object type
+                let originalHeight;
+                if (obj.userData.type === 'wall') {
+                    originalHeight = obj.userData.obj.height || 2.5;
+                } else if (obj.userData.type === 'cube') {
+                    originalHeight = obj.userData.obj.size.y;
+                }
 
                 let shouldLower = obj.userData.isLowered || false;
                 if (obj.userData.isLowered) {
@@ -352,7 +360,15 @@ export class HomeRenderer {
                 }
 
                 obj.scale.y = obj.userData.currentScale;
-                obj.position.y = (originalHeight * obj.userData.currentScale) / 2;
+                
+                // Adjust position based on object type
+                if (obj.userData.type === 'wall') {
+                    obj.position.y = (originalHeight * obj.userData.currentScale) / 2;
+                } else if (obj.userData.type === 'cube') {
+                    // For cubes, maintain the relative position to floor
+                    const relativeY = obj.userData.obj.position.y - obj.parent.position.y;
+                    obj.position.y = relativeY * obj.userData.currentScale;
+                }
             }
         });
     }
