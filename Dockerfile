@@ -30,9 +30,9 @@ RUN if command -v pip3 > /dev/null; then \
 # Copy application code from backend directory
 COPY backend/ .
 
-# Copy run script if it exists (for Home Assistant addon)
-COPY run.sh /run.sh 2>/dev/null || true
-RUN if [ -f /run.sh ]; then chmod a+x /run.sh; fi
+# Copy run script for Home Assistant addon
+COPY run.sh /run.sh
+RUN chmod a+x /run.sh
 
 # Create necessary directories
 RUN mkdir -p /data/saves && \
@@ -50,5 +50,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/').read()" 2>/dev/null || \
         python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/').read()" || exit 1
 
-# Run the application (use run.sh if exists, otherwise direct command)
-CMD if [ -f /run.sh ]; then /run.sh; else uvicorn main:app --host 0.0.0.0 --port 8000; fi
+# Run the application (use run.sh for addon, uvicorn for standalone)
+CMD ["/run.sh"]
