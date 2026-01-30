@@ -16,15 +16,15 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Copy requirements
-COPY requirements.txt .
+COPY backend/requirements.txt .
 
 # Install Python dependencies
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Copy application
-COPY . .
+# Copy application from backend directory
+COPY backend/ .
 
-# Copy run script
+# Copy run script from root
 COPY run.sh /
 RUN chmod a+x /run.sh
 
