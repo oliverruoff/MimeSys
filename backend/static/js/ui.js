@@ -755,7 +755,14 @@ export class UI {
                 .file-explorer-header h2 { margin: 0; font-size: 1.25rem; font-weight: 600; }
                 .file-explorer-close { background: none; border: none; color: #9ca3af; font-size: 1.5rem; cursor: pointer; padding: 0 8px; transition: color 0.2s; }
                 .file-explorer-close:hover { color: white; }
+                .file-upload-section { margin-bottom: 20px; padding: 16px; background: rgba(59, 130, 246, 0.1); border: 2px dashed rgba(59, 130, 246, 0.3); border-radius: 8px; text-align: center; }
+                .file-upload-section h3 { margin: 0 0 10px 0; font-size: 1rem; font-weight: 500; color: rgba(255, 255, 255, 0.9); }
+                .file-upload-input { display: none; }
+                .file-upload-button { background: rgba(59, 130, 246, 0.8); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+                .file-upload-button:hover { background: rgba(59, 130, 246, 1); transform: translateY(-1px); }
+                .file-upload-status { margin-top: 10px; font-size: 0.85rem; color: #9ca3af; }
                 .file-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; padding-right: 4px; max-height: 400px; }
+                .file-list-header { font-size: 0.9rem; color: #9ca3af; margin-bottom: 8px; font-weight: 500; }
                 .file-item { background: rgba(255, 255, 255, 0.05); padding: 12px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; transition: all 0.2s; border: 1px solid transparent; }
                 .file-item:hover { background: rgba(255, 255, 255, 0.1); transform: translateX(2px); }
                 .file-item.selected { background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.5); }
@@ -785,6 +792,54 @@ export class UI {
         header.className = 'file-explorer-header';
         header.innerHTML = `<h2>Load Project</h2><button class="file-explorer-close">×</button>`;
         modal.appendChild(header);
+
+        // Upload Section
+        const uploadSection = document.createElement('div');
+        uploadSection.className = 'file-upload-section';
+        uploadSection.innerHTML = `
+            <h3>Upload New Save File</h3>
+            <input type="file" id="file-upload-input" class="file-upload-input" accept=".json">
+            <button class="file-upload-button" id="upload-button">Choose File</button>
+            <div class="file-upload-status" id="upload-status"></div>
+        `;
+        modal.appendChild(uploadSection);
+
+        // File upload handler
+        const fileInput = uploadSection.querySelector('#file-upload-input');
+        const uploadButton = uploadSection.querySelector('#upload-button');
+        const uploadStatus = uploadSection.querySelector('#upload-status');
+
+        uploadButton.onclick = () => fileInput.click();
+        
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            uploadStatus.textContent = 'Uploading...';
+            uploadStatus.style.color = '#3b82f6';
+
+            try {
+                const result = await this.uploadSaveFile(file);
+                uploadStatus.textContent = `✓ ${file.name} uploaded successfully!`;
+                uploadStatus.style.color = '#10b981';
+                
+                // Load the uploaded file automatically
+                setTimeout(() => {
+                    this.editor.loadFromFile(result.filename);
+                    document.body.removeChild(overlay);
+                }, 500);
+            } catch (error) {
+                uploadStatus.textContent = `✗ ${error.message}`;
+                uploadStatus.style.color = '#ef4444';
+                fileInput.value = ''; // Reset input
+            }
+        };
+
+        // Divider
+        const divider = document.createElement('div');
+        divider.className = 'file-list-header';
+        divider.textContent = 'OR SELECT EXISTING FILE:';
+        modal.appendChild(divider);
 
         // File List
         const list = document.createElement('div');
@@ -821,5 +876,52 @@ export class UI {
         };
 
         document.body.appendChild(overlay);
+    }
+
+    async uploadSaveFile(file) {
+        // Validate file type
+        if (!file.name.endsWith('.json')) {
+            throw new Error('Only JSON files are supported');
+        }
+
+        // Validate file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            throw new Error('File is too large (max 10MB)');
+        }
+
+        // Validate JSON structure
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            // Basic validation - check if it looks like a Home save file
+            if (!data.id || !data.floors || !Array.isArray(data.floors)) {
+                throw new Error('Invalid save file format - missing required fields');
+            }
+        } catch (e) {
+            if (e instanceof SyntaxError) {
+                throw new Error('Invalid JSON file');
+            }
+            throw e;
+        }
+
+        // Upload file
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/saves/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Upload failed');
+        }
+
+        const result = await response.json();
+        this.showNotification(`File uploaded: ${result.filename}`);
+        return result;
     }
 }

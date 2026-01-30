@@ -1,0 +1,42 @@
+{
+  "id": "test-home",
+  "name": "Test Upload Home",
+  "floors": [
+    {
+      "id": "floor-1",
+      "level": 0,
+      "name": "Ground Floor",
+      "height": 3.0,
+      "walls": [
+        {
+          "id": "wall-1",
+          "start": [0, 0],
+          "end": [5, 0],
+          "thickness": 0.2,
+          "height": 3.0
+        },
+        {
+          "id": "wall-2",
+          "start": [5, 0],
+          "end": [5, 5],
+          "thickness": 0.2,
+          "height": 3.0
+        }
+      ],
+      "lights": [
+        {
+          "id": "light-1",
+          "name": "Test Light",
+          "position": [2.5, 2.5, 2.5],
+          "state": {
+            "on": true,
+            "brightness": 100,
+            "color": "#ffffff",
+            "intensity": 3.0
+          }
+        }
+      ],
+      "objects": []
+    }
+  ]
+}

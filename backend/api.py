@@ -136,6 +136,74 @@ async def control_lights(commands: list[LightControlCommand]):
             
     return {"status": "success", "updated_lights": updates}
 
+@router.post("/saves/upload")
+async def upload_save(file: UploadFile = File(...)):
+    """Upload a new save file"""
+    import logging
+    import json
+    logger = logging.getLogger(__name__)
+    
+    # Validate file extension
+    if not file.filename or not file.filename.endswith('.json'):
+        raise HTTPException(status_code=400, detail="Only JSON files are supported")
+    
+    # Validate file size (max 10MB)
+    max_size = 10 * 1024 * 1024
+    contents = await file.read()
+    if len(contents) > max_size:
+        raise HTTPException(status_code=400, detail="File is too large (max 10MB)")
+    
+    try:
+        # Validate JSON structure
+        data = json.loads(contents)
+        
+        # Basic validation - check if it looks like a Home save file
+        if not isinstance(data, dict) or 'id' not in data or 'floors' not in data:
+            raise HTTPException(status_code=400, detail="Invalid save file format - missing required fields")
+        
+        if not isinstance(data.get('floors'), list):
+            raise HTTPException(status_code=400, detail="Invalid save file format - floors must be an array")
+        
+        # Sanitize filename - remove path components and dangerous characters
+        original_filename = file.filename or "uploaded_save.json"
+        safe_filename = os.path.basename(original_filename)
+        safe_filename = "".join(c for c in safe_filename if c.isalnum() or c in (' ', '-', '_', '.')).strip()
+        
+        if not safe_filename:
+            safe_filename = "uploaded_save.json"
+        
+        # Ensure .json extension
+        if not safe_filename.endswith('.json'):
+            safe_filename += '.json'
+        
+        # Write to saves directory
+        target_path = os.path.join(db.SAVES_DIR, safe_filename)
+        
+        # Check if file already exists - if so, add a number suffix
+        base_name = safe_filename[:-5]  # Remove .json
+        counter = 1
+        while os.path.exists(target_path):
+            safe_filename = f"{base_name}_{counter}.json"
+            target_path = os.path.join(db.SAVES_DIR, safe_filename)
+            counter += 1
+        
+        with open(target_path, 'wb') as f:
+            f.write(contents)
+        
+        logger.info(f"Uploaded save file: {safe_filename}")
+        
+        return {
+            "status": "success",
+            "filename": safe_filename,
+            "message": f"File uploaded successfully as {safe_filename}"
+        }
+        
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON file")
+    except Exception as e:
+        logger.error(f"Failed to upload save file: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
+
 @router.post("/saves/{filename}", response_model=str)
 async def save_as(filename: str, home: Home):
     # Update DB state first
@@ -187,7 +255,7 @@ async def import_saves(file: UploadFile = File(...)):
     import logging
     logger = logging.getLogger(__name__)
     
-    if not file.filename.endswith('.zip'):
+    if not file.filename or not file.filename.endswith('.zip'):
         raise HTTPException(status_code=400, detail="Only ZIP files are supported")
     
     try:
