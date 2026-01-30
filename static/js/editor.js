@@ -513,7 +513,7 @@ export class Editor {
             const home = await fetch(`/api/saves/${filename}/load`, { method: 'POST' }).then(r => r.json());
             this.currentFilename = filename;
             this.homeRenderer.render(home);
-            this.homeRenderer.setVisibleFloorLimit(0);
+            this.homeRenderer.setVisibleFloorLimit(0, true); // immediate = true for editor
             this.notify(`Loaded ${filename}`);
 
             // Re-init floor index
@@ -573,6 +573,6 @@ export class Editor {
 
     refresh() {
         this.homeRenderer.render(this.homeRenderer.currentHome);
-        this.homeRenderer.setVisibleFloorLimit(this.currentFloorIndex);
+        this.homeRenderer.setVisibleFloorLimit(this.currentFloorIndex, true); // immediate = true for editor
     }
 }

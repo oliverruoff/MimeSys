@@ -7,6 +7,8 @@ export class HomeRenderer {
         this.scene.add(this.homeGroup);
         this.interactables = [];
         this.gizmos = [];
+        // Floor transition state tracking
+        this.floorTransitions = new Map(); // Maps floor level to { targetScale: 0-1, currentScale: 0-1 }
     }
 
     render(home) {
@@ -101,16 +103,83 @@ export class HomeRenderer {
         }
     }
 
-    setVisibleFloorLimit(maxLevel) {
+    setVisibleFloorLimit(maxLevel, immediate = false) {
         if (!this.homeGroup) return;
         this.homeGroup.children.forEach(floorGroup => {
             const level = floorGroup.userData.level;
             if (level !== undefined) {
-                if (level > maxLevel) {
-                    floorGroup.visible = false;
+                const shouldBeVisible = level <= maxLevel;
+                const targetScale = shouldBeVisible ? 1 : 0;
+                
+                // Initialize transition state if not exists
+                if (!this.floorTransitions.has(level)) {
+                    this.floorTransitions.set(level, {
+                        targetScale: targetScale,
+                        currentScale: targetScale  // Start at target (no animation on init)
+                    });
+                    
+                    // Set immediate visibility and scale for initial state
+                    floorGroup.visible = shouldBeVisible;
+                    floorGroup.scale.y = targetScale;
+                    floorGroup.position.y = (level * 2.5) * targetScale;
                 } else {
-                    floorGroup.visible = true;
+                    // Update target scale for existing floors
+                    const transitionState = this.floorTransitions.get(level);
+                    transitionState.targetScale = targetScale;
+                    
+                    // If immediate mode (editor), skip animation and apply instantly
+                    if (immediate) {
+                        transitionState.currentScale = targetScale;
+                        floorGroup.scale.y = targetScale;
+                        floorGroup.position.y = (level * 2.5) * targetScale;
+                        floorGroup.visible = shouldBeVisible;
+                    }
                 }
+            }
+        });
+    }
+
+    animateFloorTransitions() {
+        if (!this.homeGroup) return;
+        
+        const lerpSpeed = 0.08; // Smooth transition speed
+        
+        this.homeGroup.children.forEach(floorGroup => {
+            const level = floorGroup.userData.level;
+            if (level === undefined) return;
+            
+            const transitionState = this.floorTransitions.get(level);
+            if (!transitionState) return;
+            
+            const { targetScale, currentScale } = transitionState;
+            
+            // Smoothly interpolate current scale towards target
+            const newScale = currentScale + (targetScale - currentScale) * lerpSpeed;
+            
+            // Update transition state
+            transitionState.currentScale = newScale;
+            
+            // Apply scale to all floor elements
+            floorGroup.scale.y = newScale;
+            
+            // Adjust position to make it grow/shrink from ground up
+            const baseY = level * 2.5;
+            floorGroup.position.y = baseY * newScale;
+            
+            // When shrunk to nearly zero, hide the floor completely
+            if (targetScale === 0 && newScale < 0.01) {
+                floorGroup.visible = false;
+                transitionState.currentScale = 0;
+            } else if (targetScale > 0 && floorGroup.visible === false) {
+                // Make visible when starting to expand
+                floorGroup.visible = true;
+            }
+            
+            // Snap to target if very close
+            if (Math.abs(targetScale - newScale) < 0.005) {
+                transitionState.currentScale = targetScale;
+                floorGroup.scale.y = targetScale;
+                floorGroup.position.y = baseY * targetScale;
             }
         });
     }

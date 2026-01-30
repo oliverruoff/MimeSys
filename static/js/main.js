@@ -37,7 +37,7 @@ class App {
                 const home = await fetch(`/api/homes/${homes[0].id}`).then(r => r.json());
                 this.homeRenderer.render(home);
                 this.controls.setInteractables(this.homeRenderer.interactables);
-                this.homeRenderer.setVisibleFloorLimit(0);
+                this.homeRenderer.setVisibleFloorLimit(0, true); // immediate = true for editor
 
                 // Hide Gizmos by default
                 if (this.homeRenderer.setGizmoVisibility) {

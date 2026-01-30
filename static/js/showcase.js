@@ -110,6 +110,11 @@ class ShowcaseApp {
             this.homeRenderer.updateSmartWalls(this.sceneManager.camera, new THREE.Vector3(0, 0, 0));
         }
 
+        // Floor Transitions Update
+        if (this.homeRenderer.animateFloorTransitions) {
+            this.homeRenderer.animateFloorTransitions();
+        }
+
         this.sceneManager.renderer.render(this.sceneManager.scene, this.sceneManager.camera);
     }
 }
