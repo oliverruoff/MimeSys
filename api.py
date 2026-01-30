@@ -1,8 +1,12 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi.responses import FileResponse, StreamingResponse
 from models import Home, Floor, Wall, Light, LightState
 from pydantic import BaseModel
 import db
 import base64
+import io
+import zipfile
+import os
 
 class LightControlCommand(BaseModel):
     name: str # Control all lights with this name
@@ -54,6 +58,10 @@ async def update_light(home_id: str, light_id: str, state: LightState):
         raise HTTPException(status_code=404, detail="Light not found")
         
     target_light.state = state
+    
+    # Auto-save the home after light state change
+    db.auto_save_home(home)
+    
     return target_light
 
 # HA Integration specific endpoints (simplified)
@@ -135,7 +143,94 @@ async def save_as(filename: str, home: Home):
     saved_name = db.save_to_file(home, filename)
     return saved_name
 
+
+@router.get("/saves/export/all")
+async def export_all_saves():
+    """Export all save files as a ZIP archive for backup"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        # Create an in-memory ZIP file
+        zip_buffer = io.BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            save_files = db.get_all_save_files()
+            
+            if not save_files:
+                raise HTTPException(status_code=404, detail="No save files found to export")
+            
+            for filename in save_files:
+                file_path = os.path.join(db.SAVES_DIR, filename)
+                if os.path.exists(file_path):
+                    # Add file to ZIP with just the filename (no path)
+                    zip_file.write(file_path, arcname=filename)
+                    logger.info(f"Added {filename} to export ZIP")
+        
+        # Seek to beginning of buffer
+        zip_buffer.seek(0)
+        
+        # Return as downloadable file
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers={"Content-Disposition": "attachment; filename=home-digital-twin-saves.zip"}
+        )
+    except Exception as e:
+        logger.error(f"Failed to export saves: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export saves: {str(e)}")
+
+
+@router.post("/saves/import")
+async def import_saves(file: UploadFile = File(...)):
+    """Import save files from a ZIP archive"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    if not file.filename.endswith('.zip'):
+        raise HTTPException(status_code=400, detail="Only ZIP files are supported")
+    
+    try:
+        # Read the uploaded ZIP file
+        contents = await file.read()
+        zip_buffer = io.BytesIO(contents)
+        
+        imported_files = []
+        
+        with zipfile.ZipFile(zip_buffer, 'r') as zip_file:
+            # Extract all JSON files
+            for filename in zip_file.namelist():
+                if filename.endswith('.json'):
+                    # Extract to saves directory
+                    target_path = os.path.join(db.SAVES_DIR, os.path.basename(filename))
+                    
+                    # Read file content
+                    file_content = zip_file.read(filename)
+                    
+                    # Write to saves directory
+                    with open(target_path, 'wb') as f:
+                        f.write(file_content)
+                    
+                    imported_files.append(os.path.basename(filename))
+                    logger.info(f"Imported save file: {filename}")
+        
+        if not imported_files:
+            raise HTTPException(status_code=400, detail="No valid JSON save files found in ZIP")
+        
+        return {
+            "status": "success",
+            "imported_files": imported_files,
+            "count": len(imported_files)
+        }
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=400, detail="Invalid ZIP file")
+    except Exception as e:
+        logger.error(f"Failed to import saves: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to import saves: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     # Run server on port 8000
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
