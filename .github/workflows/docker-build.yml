@@ -83,3 +83,27 @@ jobs:
             --target . \
             --image "ghcr.io/${{ github.repository_owner }}/${{ matrix.arch }}-addon-home-digital-twin" \
             --no-latest
+
+      - name: Make package public
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        run: |
+          PACKAGE_NAME="${{ matrix.arch }}-addon-home-digital-twin"
+          echo "Making package ${PACKAGE_NAME} public..."
+          
+          # Get package info
+          PACKAGE_VERSION_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/users/${{ github.repository_owner }}/packages/container/${PACKAGE_NAME}/versions" | \
+            jq -r '.[0].id')
+          
+          if [ -n "$PACKAGE_VERSION_ID" ] && [ "$PACKAGE_VERSION_ID" != "null" ]; then
+            # Update package visibility
+            curl -X PATCH \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/user/packages/container/${PACKAGE_NAME}" \
+              -d '{"visibility":"public"}'
+            echo "Package visibility updated to public"
+          else
+            echo "Could not find package version, may already be public"
+          fi
