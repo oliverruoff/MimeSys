@@ -212,6 +212,14 @@ export class UI {
         this.cubeSidebar.className = 'cube-sidebar glass';
         document.body.appendChild(this.cubeSidebar);
 
+        // Track minimized state
+        this.lightsPaneMinimized = false;
+
+        this.updateSidebar();
+    }
+
+    toggleLightsPane() {
+        this.lightsPaneMinimized = !this.lightsPaneMinimized;
         this.updateSidebar();
     }
 
@@ -246,15 +254,32 @@ export class UI {
         // Header
         const header = document.createElement('div');
         header.className = 'lights-sidebar-header';
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+        
         const title = document.createElement('h3');
         title.className = 'lights-sidebar-title';
         title.textContent = `Lights (${currentFloor.lights.length})`;
         header.appendChild(title);
+        
+        // Minimize/Maximize button
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'icon-btn';
+        toggleBtn.innerHTML = this.lightsPaneMinimized ? '▼' : '▲';
+        toggleBtn.title = this.lightsPaneMinimized ? 'Maximize' : 'Minimize';
+        toggleBtn.style.fontSize = '12px';
+        toggleBtn.style.padding = '4px 8px';
+        toggleBtn.style.cursor = 'pointer';
+        toggleBtn.onclick = () => this.toggleLightsPane();
+        header.appendChild(toggleBtn);
+        
         this.sidebar.appendChild(header);
 
         // Lights container
         const container = document.createElement('div');
         container.className = 'lights-container';
+        container.style.display = this.lightsPaneMinimized ? 'none' : 'flex';
 
         if (currentFloor.lights.length === 0) {
             const empty = document.createElement('div');
