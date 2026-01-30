@@ -20,8 +20,8 @@
   "schema": {
     "data_dir": "str?"
   },
-  "image": "ghcr.io/{arch}-home-digital-twin",
-  "url": "https://github.com/yourusername/home-digital-twin",
+  "image": "ghcr.io/oliverruoff/home-digital-twin-{arch}",
+  "url": "https://github.com/oliverruoff/MimeSys",
   "ingress": true,
   "ingress_port": 8000,
   "ingress_entry": "/",

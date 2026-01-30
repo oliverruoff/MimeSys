@@ -83,7 +83,7 @@ jobs:
           args: |
             --${{ matrix.arch }} \
             --target . \
-            --image "${{ env.REGISTRY }}/${{ matrix.arch }}-home-digital-twin" \
+            --image "home-digital-twin-${{ matrix.arch }}" \
             --docker-hub "${{ env.REGISTRY }}" \
-            --docker-user "${{ github.actor }}" \
+            --docker-user "${{ github.repository_owner }}" \
             --docker-password "${{ secrets.GITHUB_TOKEN }}"
