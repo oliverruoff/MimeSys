@@ -218,14 +218,27 @@ export class Editor {
     }
 
     onClick(e) {
-        // Selection Logic - Works even in View mode (when editor disabled)
-        this.raycaster.setFromCamera(this.mouse, this.sceneManager.camera);
+        // Setup raycaster
         const rect = this.sceneManager.renderer.domElement.getBoundingClientRect();
         this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.sceneManager.camera);
         const intersects = this.raycaster.intersectObjects(this.homeRenderer.interactables, false);
 
+        // Handle delete mode FIRST (before selection logic)
+        if (this.enabled && this.mode === 'delete') {
+            if (intersects.length > 0) {
+                const hit = intersects[0].object;
+                // Delete the object and clear selection
+                this.deleteObject(hit.userData);
+                this.selectedObject = null;
+                this.clearDeleteHover();
+                this.notify({ type: 'content_change' });
+            }
+            return; // Don't continue with other logic
+        }
+
+        // Selection Logic - Works even in View mode (when editor disabled)
         if (intersects.length > 0) {
             const hit = intersects[0].object;
             if (hit.userData.type === 'cube') {
