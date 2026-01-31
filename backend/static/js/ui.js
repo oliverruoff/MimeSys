@@ -138,6 +138,9 @@ export class UI {
         // Load button
         this.createButtonInContainer(fileOps, 'Load', () => this.createFileExplorerModal());
 
+        // Download button
+        this.createButtonInContainer(fileOps, 'Download', () => this.downloadSaveFile());
+
         // Separator
         this.createSeparatorInContainer(fileOps);
 
@@ -926,6 +929,52 @@ export class UI {
         };
 
         document.body.appendChild(overlay);
+    }
+
+    async downloadSaveFile() {
+        try {
+            // Fetch the current home data
+            const response = await fetch('/api/homes');
+            if (!response.ok) {
+                throw new Error('Failed to fetch home data');
+            }
+            
+            const homes = await response.json();
+            if (!homes || homes.length === 0) {
+                this.showToast('No home data to download', 'error');
+                return;
+            }
+            
+            const homeData = homes[0];
+            
+            // Convert to JSON string with pretty formatting
+            const jsonString = JSON.stringify(homeData, null, 2);
+            
+            // Create a blob from the JSON string
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            
+            // Create a download link and trigger it
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Generate filename with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            link.download = `mimesys-save-${timestamp}.json`;
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up the URL object
+            URL.revokeObjectURL(url);
+            
+            this.showToast('Save file downloaded successfully!');
+        } catch (error) {
+            console.error('Download failed:', error);
+            this.showToast('Failed to download save file', 'error');
+        }
     }
 
     async uploadSaveFile(file) {
