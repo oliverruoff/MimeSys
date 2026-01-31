@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="backend/static/images/favicon.png" alt="MimeSys Logo" width="200"/>
+</div>
+
 # MimeSys - 3D Home Digital Twin for Home Assistant
 
 Create a stunning 3D visualization of your home that syncs in real-time with your Home Assistant lights. Design your home layout, place lights with the exact entity IDs from Home Assistant, and watch them sync automatically!
