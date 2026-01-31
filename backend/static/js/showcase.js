@@ -25,6 +25,11 @@ class ShowcaseApp {
                 this.home = home;
                 this.homeRenderer.render(home);
 
+                // Apply background color from home data
+                if (home.background_color) {
+                    this.sceneManager.setBackgroundColor(home.background_color);
+                }
+
                 // Calculate house center and bounds
                 this.calculateHouseCenter(home);
 

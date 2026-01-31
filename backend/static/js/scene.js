@@ -4,7 +4,7 @@ export class SceneManager {
     constructor(container, showGrid = true) {
         this.container = container;
         this.scene = new THREE.Scene();
-        // Dark Grey Background
+        // Dark Grey Background (default, can be changed via setBackgroundColor)
         this.scene.background = new THREE.Color(0x222222);
         this.scene.fog = new THREE.Fog(0x222222, 20, 80);
 
@@ -73,5 +73,12 @@ export class SceneManager {
         this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+    }
+
+    setBackgroundColor(color) {
+        // Accept hex string like "#222222" or THREE.Color
+        this.scene.background = new THREE.Color(color);
+        // Optionally update fog to match
+        this.scene.fog.color = new THREE.Color(color);
     }
 }

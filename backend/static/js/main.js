@@ -39,6 +39,15 @@ class App {
                 this.controls.setInteractables(this.homeRenderer.interactables);
                 this.homeRenderer.setVisibleFloorLimit(0, true); // immediate = true for editor
 
+                // Apply background color from home data
+                if (home.background_color) {
+                    this.sceneManager.setBackgroundColor(home.background_color);
+                    // Update UI color picker if available
+                    if (this.ui.bgColorInput) {
+                        this.ui.bgColorInput.value = home.background_color;
+                    }
+                }
+
                 // Hide Gizmos by default
                 if (this.homeRenderer.setGizmoVisibility) {
                     this.homeRenderer.setGizmoVisibility(false);

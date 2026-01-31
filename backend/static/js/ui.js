@@ -141,6 +141,56 @@ export class UI {
         // Separator
         this.createSeparatorInContainer(fileOps);
 
+        // Background color picker
+        const bgColorLabel = document.createElement('span');
+        bgColorLabel.textContent = 'BG:';
+        bgColorLabel.style.color = 'white';
+        bgColorLabel.style.fontSize = '12px';
+        bgColorLabel.style.fontWeight = 'bold';
+        fileOps.appendChild(bgColorLabel);
+
+        const bgColorInput = document.createElement('input');
+        bgColorInput.type = 'color';
+        bgColorInput.value = '#222222';
+        bgColorInput.style.width = '40px';
+        bgColorInput.style.height = '30px';
+        bgColorInput.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+        bgColorInput.style.borderRadius = '6px';
+        bgColorInput.style.cursor = 'pointer';
+        bgColorInput.style.backgroundColor = 'transparent';
+        bgColorInput.title = 'Background Color';
+        
+        bgColorInput.addEventListener('change', async (e) => {
+            const color = e.target.value;
+            try {
+                // Update via API
+                const response = await fetch('/api/background/color', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ color })
+                });
+                
+                if (response.ok) {
+                    // Update scene background immediately
+                    if (this.app.sceneManager && this.app.sceneManager.scene) {
+                        this.app.sceneManager.scene.background = new THREE.Color(color);
+                    }
+                    this.showToast(`Background color updated to ${color}`);
+                }
+            } catch (err) {
+                console.error('Failed to update background color:', err);
+                this.showToast('Failed to update background color', 'error');
+            }
+        });
+        
+        fileOps.appendChild(bgColorInput);
+        
+        // Store reference for later updates
+        this.bgColorInput = bgColorInput;
+
+        // Separator
+        this.createSeparatorInContainer(fileOps);
+
         // New Home button (red and distinct)
         const resetBtn = this.createButtonInContainer(fileOps, 'New Home', async () => {
             if (confirm('⚠️ Reset EVERYTHING?\n\nThis will delete your current home and start fresh.\nUnsaved changes will be lost forever.')) {

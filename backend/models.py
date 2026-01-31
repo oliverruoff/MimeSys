@@ -80,6 +80,7 @@ class Home(BaseModel):
     id: str = None
     name: str
     floors: List[Floor] = []
+    background_color: str = "#222222"  # Default dark grey
 
     def __init__(self, **data):
         super().__init__(**data)

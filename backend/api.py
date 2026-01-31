@@ -14,6 +14,9 @@ class LightControlCommand(BaseModel):
     brightness: float | None = None # 0 - 100
     color: list[int] | None = None # [255, 0, 0]
 
+class BackgroundColorCommand(BaseModel):
+    color: str  # Hex color like "#222222"
+
 router = APIRouter()
 
 @router.get("/homes", response_model=list[Home])
@@ -135,6 +138,35 @@ async def control_lights(commands: list[LightControlCommand]):
             db.update_home(home.id, home)
             
     return {"status": "success", "updated_lights": updates}
+
+@router.post("/background/color")
+async def set_background_color(cmd: BackgroundColorCommand):
+    """Set the background color for all homes (typically one active home)"""
+    homes = db.get_homes()
+    if not homes:
+        raise HTTPException(status_code=404, detail="No home found")
+    
+    # Update the first (active) home
+    home = homes[0]
+    home.background_color = cmd.color
+    db.update_home(home.id, home)
+    
+    # Auto-save
+    db.auto_save_home(home)
+    
+    return {
+        "status": "success",
+        "background_color": home.background_color
+    }
+
+@router.get("/background/color")
+async def get_background_color():
+    """Get the current background color"""
+    homes = db.get_homes()
+    if not homes:
+        return {"background_color": "#222222"}  # Default
+    
+    return {"background_color": homes[0].background_color}
 
 @router.post("/saves/upload")
 async def upload_save(file: UploadFile = File(...)):
