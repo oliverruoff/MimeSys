@@ -1,9 +1,11 @@
 """MimeSys Digital Twin Sync Integration."""
 import logging
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, Event
+from homeassistant.core import HomeAssistant, Event, ServiceCall
 from homeassistant.const import EVENT_STATE_CHANGED
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+import voluptuous as vol
+import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN, CONF_API_URL, CONF_ENTITIES
 
@@ -17,8 +19,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     api_url = entry.data.get(CONF_API_URL, "http://localhost:8000")
     entities = entry.data.get(CONF_ENTITIES, [])
     
-    _LOGGER.info("Setting up MimeSys Sync integration with API: %s", api_url)
-    _LOGGER.info("Monitoring entities: %s", entities)
+    _LOGGER.warning("=" * 60)
+    _LOGGER.warning("🔵 MimeSys Sync STARTING")
+    _LOGGER.warning("🔵 API URL: %s", api_url)
+    _LOGGER.warning("🔵 Monitoring entities: %s", entities)
+    _LOGGER.warning("=" * 60)
     
     # Create sync handler
     sync_handler = MimeSysSyncHandler(hass, api_url, entities)
@@ -35,7 +40,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             
         # Check if this entity is in our monitored list
         if entity_id in entities:
-            _LOGGER.debug("State change detected for %s: old=%s, new=%s", 
+            _LOGGER.debug("🔍 State change detected for %s: old=%s, new=%s", 
                          entity_id, 
                          old_state.state if old_state else "None", 
                          new_state.state)
@@ -45,11 +50,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             new_on = new_state.state == "on"
             
             if old_on != new_on:
-                _LOGGER.info("Light state changed for %s: %s -> %s, triggering sync", 
-                           entity_id, old_on, new_on)
+                _LOGGER.warning("🔔 Light state changed: %s (%s -> %s) - TRIGGERING SYNC", 
+                           entity_id, "ON" if old_on else "OFF", "ON" if new_on else "OFF")
                 await sync_handler.sync_light_state(entity_id, new_state)
             else:
-                _LOGGER.debug("Light %s changed but on/off state is the same, skipping sync", entity_id)
+                _LOGGER.debug("⏭️ Light %s changed but on/off state is the same, skipping sync", entity_id)
     
     # Subscribe to state changes and store the unsubscribe function
     unsubscribe = hass.bus.async_listen(EVENT_STATE_CHANGED, state_change_listener)
@@ -63,16 +68,45 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register update listener for config changes
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     
+    # Register test service for manual debugging
+    async def handle_test_sync(call: ServiceCall):
+        """Service to manually trigger sync for debugging."""
+        entity_id = call.data.get("entity_id")
+        _LOGGER.warning("🧪 MANUAL TEST SYNC called for: %s", entity_id)
+        
+        state = hass.states.get(entity_id)
+        if state:
+            _LOGGER.warning("🧪 Entity state: %s", state.state)
+            _LOGGER.warning("🧪 Entity attributes: %s", state.attributes)
+            await sync_handler.sync_light_state(entity_id, state)
+        else:
+            _LOGGER.error("🧪 Entity %s not found!", entity_id)
+    
+    hass.services.async_register(
+        DOMAIN,
+        "test_sync",
+        handle_test_sync,
+        schema=vol.Schema({
+            vol.Required("entity_id"): cv.entity_id,
+        })
+    )
+    
+    _LOGGER.warning("✅ MimeSys Sync integration setup complete!")
+    _LOGGER.warning("💡 Test manually: Developer Tools → Services → mimesys_sync.test_sync")
+    
     return True
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload the config entry when it changed."""
+    _LOGGER.warning("🔄 Config changed, reloading integration...")
     await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    _LOGGER.warning("🔴 Unloading MimeSys Sync integration")
+    
     data = hass.data[DOMAIN].pop(entry.entry_id)
     
     # Unsubscribe from state changes
@@ -116,12 +150,20 @@ class MimeSysSyncHandler:
                 "color": list(rgb_color)
             }
             
-            _LOGGER.info("Sending to MimeSys API: %s", command)
+            # Build URL
+            url = f"{self.api_url}/api/control/lights"
+            
+            _LOGGER.warning("-" * 60)
+            _LOGGER.warning("📤 SENDING TO MIMESYS API:")
+            _LOGGER.warning("📤 URL: %s", url)
+            _LOGGER.warning("📤 Payload: %s", [command])
+            _LOGGER.warning("📤 Entity ID (used as light name): %s", entity_id)
+            _LOGGER.warning("📤 State: %s", "ON" if is_on else "OFF")
+            _LOGGER.warning("📤 Brightness: %d%%", brightness_pct)
+            _LOGGER.warning("📤 Color: %s", rgb_color)
+            _LOGGER.warning("-" * 60)
             
             # Send to API
-            url = f"{self.api_url}/api/control/lights"
-            _LOGGER.debug("API URL: %s", url)
-            
             async with self.session.post(
                 url,
                 json=[command],
@@ -129,20 +171,28 @@ class MimeSysSyncHandler:
                 timeout=10
             ) as response:
                 response_text = await response.text()
-                _LOGGER.debug("API Response status: %d, body: %s", response.status, response_text)
+                
+                _LOGGER.warning("📥 API RESPONSE:")
+                _LOGGER.warning("📥 Status: %d", response.status)
+                _LOGGER.warning("📥 Body: %s", response_text)
                 
                 if response.status == 200:
                     data = await response.json()
                     updated_count = data.get("updated_lights", 0)
+                    
                     if updated_count > 0:
-                        _LOGGER.info("✓ Successfully synced %s to MimeSys (updated %d lights)", 
-                                   entity_id, updated_count)
+                        _LOGGER.warning("✅ SUCCESS! Updated %d light(s) in MimeSys", updated_count)
                     else:
-                        _LOGGER.warning("⚠ API call successful but no lights were updated. "
-                                      "Make sure a light named '%s' exists in MimeSys.", entity_id)
+                        _LOGGER.error("⚠️ API CALL SUCCEEDED BUT NO LIGHTS UPDATED!")
+                        _LOGGER.error("⚠️ This means the light name '%s' was NOT found in MimeSys", entity_id)
+                        _LOGGER.error("⚠️ Check: Does a light in MimeSys have EXACTLY this name: '%s' ?", entity_id)
+                        _LOGGER.error("⚠️ Common issues:")
+                        _LOGGER.error("⚠️   - Name in MimeSys: 'Flur Licht' vs entity_id: 'light.eg_flur_licht' ❌")
+                        _LOGGER.error("⚠️   - Name in MimeSys: 'light.eg_flur_licht' vs entity_id: 'light.eg_flur_licht' ✅")
                 else:
-                    _LOGGER.error("✗ Failed to sync %s to MimeSys: HTTP %d - %s", 
-                                entity_id, response.status, response_text)
+                    _LOGGER.error("❌ API CALL FAILED: HTTP %d", response.status)
+                    _LOGGER.error("❌ Response: %s", response_text)
                     
         except Exception as e:
-            _LOGGER.error("✗ Error syncing %s to MimeSys: %s", entity_id, str(e), exc_info=True)
+            _LOGGER.error("❌ EXCEPTION while syncing %s to MimeSys:", entity_id, exc_info=True)
+            _LOGGER.error("❌ Error: %s", str(e))

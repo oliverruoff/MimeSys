@@ -79,9 +79,8 @@ class MimeSysSyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class MimeSysOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for MimeSys Sync."""
 
-    def __init__(self, config_entry):
-        """Initialize options flow."""
-        self.config_entry = config_entry
+    # REMOVED __init__ - the base class handles config_entry as a property
+    # This was causing: AttributeError: property 'config_entry' of 'MimeSysOptionsFlow' object has no setter
 
     async def async_step_init(self, user_input=None):
         """Manage the options."""
@@ -98,13 +97,13 @@ class MimeSysOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data={})
 
         current_entities = self.config_entry.data.get(CONF_ENTITIES, [])
+        current_api_url = self.config_entry.data.get(CONF_API_URL, DEFAULT_API_URL)
 
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
-                vol.Required(CONF_API_URL, 
-                           default=self.config_entry.data.get(CONF_API_URL)): str,
-                vol.Required(CONF_ENTITIES, default=current_entities): selector.EntitySelector(
+                vol.Required(CONF_API_URL, default=current_api_url): str,
+                vol.Optional(CONF_ENTITIES, default=current_entities): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain="light",
                         multiple=True
