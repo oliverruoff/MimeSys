@@ -35,8 +35,7 @@ COPY run.sh /run.sh
 RUN chmod a+x /run.sh
 
 # Create necessary directories
-RUN mkdir -p /data/saves && \
-    mkdir -p /app/static
+RUN mkdir -p /data/saves
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
