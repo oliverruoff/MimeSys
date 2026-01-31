@@ -1,4 +1,5 @@
 name: Build and Publish Docker Images
+# Rebuild triggered after package cleanup to ensure public visibility
 
 on:
   push:
