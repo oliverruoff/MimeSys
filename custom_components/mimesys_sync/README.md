@@ -13,142 +13,128 @@ This Home Assistant integration automatically syncs your real smart home light s
 ## Prerequisites
 
 1. **MimeSys Backend Running**: You need the MimeSys addon installed and running in Home Assistant, OR the MimeSys API accessible on your network
-2. **Matching Light Names**: The light names in your MimeSys 3D model must match the entity names you'll map
+2. **Matching Light Names**: The light names in your MimeSys 3D model must **exactly match** your Home Assistant entity IDs
 
-## Installation
+## Installation via HACS
 
-### Method 1: Manual Installation
-
-1. Copy the `custom_components/mimesys_sync` folder to your Home Assistant `config/custom_components/` directory:
-   ```
-   config/
-     custom_components/
-       mimesys_sync/
-         __init__.py
-         config_flow.py
-         const.py
-         manifest.json
-   ```
-
-2. Restart Home Assistant
-
-3. Go to **Settings** → **Devices & Services** → **Add Integration**
-
-4. Search for "MimeSys Digital Twin Sync" and click to add it
-
-### Method 2: HACS Installation (Future)
-
-Coming soon - this integration will be available through HACS.
+1. Open **HACS** in Home Assistant
+2. Go to **Integrations**
+3. Click the **3-dot menu** → **Custom repositories**
+4. Add repository URL: `https://github.com/oliverruoff/MimeSys`
+5. Select category: **Integration**
+6. Click **Add**
+7. Search for **"MimeSys Digital Twin Sync"**
+8. Click **Download**
+9. **Restart Home Assistant**
+10. Go to **Settings** → **Devices & Services** → **Add Integration**
+11. Search for **"MimeSys Digital Twin Sync"** and configure
 
 ## Configuration
 
 ### Step 1: API URL
 
-When adding the integration, enter your MimeSys API URL:
+Enter your MimeSys API URL:
 
-- If using the addon: `http://localhost:8000` or `http://homeassistant.local:8000`
+- If using the addon: `http://localhost:8000`
 - If using external deployment: `http://YOUR_SERVER_IP:8000`
 
-### Step 2: Entity Mappings
+### Step 2: Select Entities
 
-Map your MimeSys light names to Home Assistant entity IDs using this format:
-
-```
-Light Name in MimeSys = entity_id
-```
+Select the light entities you want to sync from the dropdown list. The entity ID will automatically be used as the light name in MimeSys.
 
 **Example:**
-```
-Living Room = light.living_room_main
-Kitchen = light.kitchen_ceiling
-Bedroom = light.bedroom_lamp
-Office Desk = light.office_desk_light
-```
-
-**Important Notes:**
-- Light names on the left must EXACTLY match the names you used in the MimeSys 3D editor
-- Entity IDs on the right must be valid Home Assistant light entities
-- One mapping per line
-- Use `=` to separate the light name from the entity ID
-
-## How It Works
-
-1. The integration listens for state changes on all mapped light entities
-2. When a light state changes (on/off, brightness, color), it sends the update to the MimeSys API
-3. The MimeSys 3D model automatically updates to reflect the new state
-4. Changes happen in real-time, whether you control lights via:
-   - Home Assistant UI
-   - Voice assistants (Alexa, Google Assistant, etc.)
-   - Automations
-   - Physical switches (that report back to HA)
+- You select: `light.eg_flur_licht`
+- The integration will send this entity ID to MimeSys
+- Your light in MimeSys must be named: `light.eg_flur_licht` (exactly!)
 
 ## Setting Up Your Lights in MimeSys
 
-Before using this integration, make sure you've:
+**CRITICAL:** Light names in MimeSys must match your Home Assistant entity IDs **exactly**.
 
-1. Opened the MimeSys editor (Edit mode)
-2. Added lights to your 3D model using the "Add Light" tool
-3. Named each light in the sidebar to match your Home Assistant entity names
+### Steps:
 
-**Example:**
+1. **Open the MimeSys editor** (Edit mode)
+2. **Add lights** to your 3D model using the "Add Light" tool
+3. **Name each light** in the sidebar to match your HA entity ID **exactly**
 
-If you have a Home Assistant entity `light.living_room_main`, create a light in MimeSys and name it exactly `living_room_main` (or whatever name you prefer, just be consistent in the mapping).
+### Example:
+
+If you have these Home Assistant entities:
+- `light.eg_flur_licht`
+- `light.living_room`
+- `light.kitchen_ceiling`
+
+Then name your MimeSys lights:
+- `light.eg_flur_licht` ✅
+- `light.living_room` ✅
+- `light.kitchen_ceiling` ✅
+
+**Not:**
+- `Flur Licht` ❌
+- `Living Room` ❌
+- `Kitchen` ❌
+
+## How It Works
+
+1. The integration listens for state changes on your selected light entities
+2. When a light turns on or off, it sends the update to the MimeSys API
+3. The MimeSys API matches the entity ID to the light name
+4. The 3D model updates in real-time
 
 ## Troubleshooting
 
 ### Lights not syncing
 
-1. **Check the logs**: Go to **Settings** → **System** → **Logs** and search for `mimesys_sync`
-2. **Verify API connection**: Make sure the MimeSys API URL is accessible from Home Assistant
-3. **Check light names**: Ensure the light names in MimeSys exactly match the names in your entity mappings
-4. **Verify entity IDs**: Make sure the entity IDs exist in Home Assistant
+**Check the logs:**
+1. Go to **Settings** → **System** → **Logs**
+2. Search for `mimesys_sync`
+3. Look for messages like:
+   - `✓ Successfully synced` - Working!
+   - `⚠ no lights were updated` - Name mismatch!
+   - `✗ Failed to sync` - API connection issue
 
-### Testing the integration
+**If you see "no lights were updated":**
+- This means the API call worked but couldn't find a matching light
+- Check that the light name in MimeSys **exactly** matches the entity ID
+- Remember: `light.eg_flur_licht` ≠ `Flur Licht`
 
-1. Turn a mapped light on/off in Home Assistant
-2. Open the MimeSys showcase view: `http://YOUR_HA:8000/showcase`
-3. You should see the light state update in the 3D model
+**Verify API connection:**
+```bash
+curl http://localhost:8000/api/homes
+```
 
-### Reconfiguring mappings
+**Test the API manually:**
+```bash
+curl -X POST http://localhost:8000/api/control/lights \
+  -H "Content-Type: application/json" \
+  -d '[{"name": "light.eg_flur_licht", "on": true, "brightness": 100, "color": [255, 255, 255]}]'
+```
+
+### Reconfiguring
 
 1. Go to **Settings** → **Devices & Services**
 2. Find "MimeSys Digital Twin Sync"
-3. Click **Configure**
-4. Update your mappings or API URL
+3. Click the **gear icon** (Configure)
+4. Update entities or API URL
+5. The integration will reload automatically
 
 ## Example Configuration
 
-Here's a complete example configuration:
+**Home Assistant:**
+- Entity: `light.eg_flur_licht`
+- Entity: `light.living_room_main`
+- Entity: `light.bedroom_lamp`
 
-**API URL:**
-```
-http://localhost:8000
-```
+**MimeSys Editor:**
+- Light name: `light.eg_flur_licht`
+- Light name: `light.living_room_main`
+- Light name: `light.bedroom_lamp`
 
-**Entity Mappings:**
-```
-Living Room = light.living_room_ceiling
-Kitchen = light.kitchen_main
-Bedroom = light.bedroom_overhead
-Bathroom = light.bathroom_vanity
-Hallway = light.hallway_lights
-Garage = light.garage_light
-```
+**Integration Config:**
+- API URL: `http://localhost:8000`
+- Selected entities: All three lights from the dropdown
 
-## API Details
-
-This integration uses the MimeSys `/api/control/lights` endpoint. The API expects:
-
-```json
-[
-  {
-    "name": "Light Name",
-    "on": true,
-    "brightness": 75,
-    "color": [255, 200, 100]
-  }
-]
-```
+**Result:** When you toggle any of these lights in Home Assistant, the 3D model updates instantly!
 
 ## Support
 
