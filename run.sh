@@ -1,4 +1,5 @@
-#!/usr/bin/env bashset -e
+#!/usr/bin/env bash
+set -e
 
 echo "=== 3D Home Digital Twin Startup ==="
 echo "Current directory: $(pwd)"
@@ -6,14 +7,14 @@ echo "Python version: $(python3 --version 2>&1 || python --version 2>&1 || echo 
 
 # Check if running in Home Assistant addon environment
 if command -v bashio > /dev/null 2>&1; then
-    # Home Assistant addon mode
+    # Home Assistant addon mode with bashio available
     DATA_DIR=$(bashio::config 'data_dir' 2>/dev/null || echo "/data")
-    bashio::log.info "Starting 3D Home Digital Twin (Home Assistant Addon)..."
-    bashio::log.info "Data directory: $DATA_DIR"
+    echo "Starting 3D Home Digital Twin (Home Assistant Addon with bashio)..."
+    echo "Data directory: $DATA_DIR"
 else
-    # Standalone mode
+    # Standalone mode or Home Assistant without bashio
     DATA_DIR="${DATA_DIR:-/data}"
-    echo "Starting 3D Home Digital Twin (Standalone)..."
+    echo "Starting 3D Home Digital Twin (Standalone mode)..."
     echo "Data directory: $DATA_DIR"
 fi
 
