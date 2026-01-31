@@ -92,14 +92,15 @@ export class HomeRenderer {
             const cx = (minX + maxX) / 2;
             const cz = (minZ + maxZ) / 2;
 
-            const plate = this.scene.getObjectByName('basePlate');
-            if (plate) {
-                plate.position.set(cx, -0.25, cz);
-            }
-            const rim = this.scene.getObjectByName('basePlateRim');
-            if (rim) {
-                rim.position.set(cx, 0, cz);
-            }
+            // REMOVED: Base plate repositioning (disk no longer exists)
+            // const plate = this.scene.getObjectByName('basePlate');
+            // if (plate) {
+            //     plate.position.set(cx, -0.25, cz);
+            // }
+            // const rim = this.scene.getObjectByName('basePlateRim');
+            // if (rim) {
+            //     rim.position.set(cx, 0, cz);
+            // }
         }
     }
 

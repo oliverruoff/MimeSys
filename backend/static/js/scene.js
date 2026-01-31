@@ -40,33 +40,34 @@ export class SceneManager {
             this.scene.add(grid);
         }
 
-        // Base Plate - Frosted Glass Disk (Restored)
-        this.addBasePlate();
+        // Base Plate - REMOVED (disk/platform no longer rendered)
+        // this.addBasePlate();
     }
 
-    addBasePlate() {
-        const geometry = new THREE.CylinderGeometry(15, 15, 0.5, 64);
-        const material = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff,
-            metalness: 0.1,
-            roughness: 0.2,
-            transmission: 0.0,
-        });
-        const plate = new THREE.Mesh(geometry, material);
-        plate.position.y = -0.25;
-        plate.receiveShadow = true;
-        plate.name = "basePlate"; // Named for centering
-        this.scene.add(plate);
-
-        // Rim
-        const rimGeo = new THREE.TorusGeometry(15, 0.2, 16, 100);
-        const rimMat = new THREE.MeshStandardMaterial({ color: 0xcccccc });
-        const rim = new THREE.Mesh(rimGeo, rimMat);
-        rim.rotation.x = Math.PI / 2;
-        rim.position.y = 0;
-        rim.name = "basePlateRim";
-        this.scene.add(rim);
-    }
+    // REMOVED: addBasePlate() method - disk/platform no longer needed
+    // addBasePlate() {
+    //     const geometry = new THREE.CylinderGeometry(15, 15, 0.5, 64);
+    //     const material = new THREE.MeshPhysicalMaterial({
+    //         color: 0xffffff,
+    //         metalness: 0.1,
+    //         roughness: 0.2,
+    //         transmission: 0.0,
+    //     });
+    //     const plate = new THREE.Mesh(geometry, material);
+    //     plate.position.y = -0.25;
+    //     plate.receiveShadow = true;
+    //     plate.name = "basePlate"; // Named for centering
+    //     this.scene.add(plate);
+    //
+    //     // Rim
+    //     const rimGeo = new THREE.TorusGeometry(15, 0.2, 16, 100);
+    //     const rimMat = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+    //     const rim = new THREE.Mesh(rimGeo, rimMat);
+    //     rim.rotation.x = Math.PI / 2;
+    //     rim.position.y = 0;
+    //     rim.name = "basePlateRim";
+    //     this.scene.add(rim);
+    // }
 
     onResize() {
         this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
