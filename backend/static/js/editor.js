@@ -337,6 +337,7 @@ export class Editor {
         });
 
         this.refresh();
+        this.autoSave(); // Auto-save after adding wall
     }
 
     addLight(pos) {
@@ -358,6 +359,7 @@ export class Editor {
 
         this.refresh();
         this.notify({ type: 'content_change' });
+        this.autoSave(); // Auto-save after adding light
     }
 
     addCube(pos) {
@@ -382,6 +384,7 @@ export class Editor {
 
         this.refresh();
         this.notify({ type: 'content_change' });
+        this.autoSave(); // Auto-save after adding cube
     }
 
 
@@ -432,6 +435,7 @@ export class Editor {
 
         this.refresh();
         this.notify({ type: 'content_change' });
+        this.autoSave(); // Auto-save after deleting
     }
 
     undo() {
@@ -486,6 +490,7 @@ export class Editor {
         this.refresh();
         this.notify({ type: 'content_change' });
         this.notify("Undone!");
+        this.autoSave(); // Auto-save after undo
     }
 
     finishFloorPoly() {
@@ -495,6 +500,7 @@ export class Editor {
         this.floorPoints = [];
         this.refresh();
         this.notify("Floor shape updated!");
+        this.autoSave(); // Auto-save after updating floor shape
     }
 
     async save() {
@@ -522,6 +528,24 @@ export class Editor {
         } catch (e) {
             console.error(e);
             this.notify("Save failed");
+        }
+    }
+
+    async autoSave() {
+        if (!this.homeRenderer.currentHome) return;
+        
+        // Use the current filename, or default to 'default.json'
+        const filename = this.currentFilename || 'default.json';
+        
+        try {
+            await fetch(`/api/saves/${filename}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.homeRenderer.currentHome)
+            });
+            console.log(`Auto-saved to ${filename}`);
+        } catch (e) {
+            console.error('Auto-save failed:', e);
         }
     }
 
@@ -563,6 +587,8 @@ export class Editor {
         // Notify UI of update
         if (this.notificationHandler) // HACK: reusing notify to trigger UI updates if we implement a generic event bus later
             this.notify({ type: 'floor_change', level: this.currentFloorIndex });
+        
+        this.autoSave(); // Auto-save after adding floor
     }
 
     switchFloor(delta) {
