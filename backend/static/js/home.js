@@ -55,8 +55,8 @@ export class HomeRenderer {
                 const extrudeSettings = { depth: 0.25, bevelEnabled: false };
                 const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
 
-                // Standard dark floor
-                const mat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.8 });
+                // Use MeshLambertMaterial for better performance with many lights (no shader limit)
+                const mat = new THREE.MeshLambertMaterial({ color: 0x444444 });
                 const mesh = new THREE.Mesh(geo, mat);
 
                 // Rotation X 90: Shape is XY -> XZ. 
@@ -199,8 +199,8 @@ export class HomeRenderer {
         const cz = (p1.z + p2.z) / 2;
 
         const geo = new THREE.BoxGeometry(len, height, thickness);
-        // Bright walls for contrast against dark bg
-        const mat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0 });
+        // Use MeshLambertMaterial for better performance with many lights (no shader limit)
+        const mat = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
         const mesh = new THREE.Mesh(geo, mat);
 
         mesh.position.set(cx, height / 2, cz);
@@ -215,7 +215,8 @@ export class HomeRenderer {
         if (wallData.windows) {
             wallData.windows.forEach(win => {
                 const wGeo = new THREE.BoxGeometry(1, 1, thickness + 0.1);
-                const wMat = new THREE.MeshStandardMaterial({ color: 0x87ceeb, transparent: true, opacity: 0.6 });
+                // Use MeshLambertMaterial for better performance with many lights
+                const wMat = new THREE.MeshLambertMaterial({ color: 0x87ceeb, transparent: true, opacity: 0.6 });
                 const wMesh = new THREE.Mesh(wGeo, wMat);
                 wMesh.position.set(0, 0, 0);
                 mesh.add(wMesh);
@@ -254,7 +255,8 @@ export class HomeRenderer {
     createCube(cubeData, parent, floorId) {
         const { id, position, size, rotation, color, name } = cubeData;
         const geo = new THREE.BoxGeometry(size.x, size.y, size.z);
-        const mat = new THREE.MeshStandardMaterial({ color: color });
+        // Use MeshLambertMaterial for better performance with many lights (no shader limit)
+        const mat = new THREE.MeshLambertMaterial({ color: color });
         const mesh = new THREE.Mesh(geo, mat);
 
         const relativeY = position.y - parent.position.y;
