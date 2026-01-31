@@ -85,8 +85,10 @@ def load_from_file_internal(filename: str):
         with open(path, 'r') as f:
             data = json.load(f)
             home = Home(**data)
+            # Clear existing homes and load only this one
+            homes_db.clear()
             homes_db[home.id] = home
-            logger.info(f"Successfully loaded home from: {filename}")
+            logger.info(f"Successfully loaded home from: {filename} (cleared previous homes)")
             return home
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse JSON from {filename}: {e}")
@@ -182,8 +184,10 @@ def load_from_file(filename: str):
         with open(path, 'r') as f:
             data = json.load(f)
             home = Home(**data)
+            # Clear existing homes and load only this one
+            homes_db.clear()
             homes_db[home.id] = home
-            logger.info(f"Loaded home from: {filename}")
+            logger.info(f"Loaded home from: {filename} (cleared previous homes)")
             return home
     except Exception as e:
         logger.error(f"Failed to load home from {filename}: {e}")

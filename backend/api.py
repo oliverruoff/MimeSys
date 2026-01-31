@@ -206,7 +206,8 @@ async def upload_save(file: UploadFile = File(...)):
 
 @router.post("/saves/{filename}", response_model=str)
 async def save_as(filename: str, home: Home):
-    # Update DB state first
+    # Clear DB and set this as the only home
+    db.homes_db.clear()
     db.homes_db[home.id] = home
     saved_name = db.save_to_file(home, filename)
     return saved_name
