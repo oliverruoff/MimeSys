@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Application data (user-specific)
+saves/*.json
+!saves/.gitkeep
+data/
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Test files
+test-*.json

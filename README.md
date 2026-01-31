@@ -120,11 +120,12 @@ open http://localhost:8000
 ### Using Quick Start Script
 
 ```bash
-# Clone and start in one command
+# Clone and start
 git clone https://github.com/oliverruoff/MimeSys.git
 cd MimeSys
-chmod +x start.sh
-./start.sh
+docker-compose up -d
+# Or using Docker directly:
+docker run -d -p 8000:8000 -v $(pwd)/saves:/data/saves oruoff/mimesys:main
 ```
 
 ---
@@ -141,7 +142,7 @@ version: '3.8'
 
 services:
   home-digital-twin:
-    image: ghcr.io/oliverruoff/mimesys:latest
+    image: oruoff/mimesys:main
     container_name: home-digital-twin
     ports:
       - "8000:8000"
@@ -293,12 +294,13 @@ cd MimeSys
 
 2. **Install Python dependencies**:
 ```bash
+cd backend
 pip install -r requirements.txt
 ```
 
 3. **Run the application**:
 ```bash
-python main.py
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 4. **Access the application**:
@@ -781,12 +783,16 @@ backend/
 │   ├── css/
 │   │   └── styles.css        # Global styles
 │   └── index.html            # Editor HTML
-├── saves/                     # Saved design files
-├── api.py                     # API routes
-├── main.py                    # FastAPI app entry
-├── models.py                  # Pydantic models
-├── db.py                      # In-memory database
-├── requirements.txt           # Python dependencies
+├── backend/                   # Backend application
+│   ├── api.py                 # API routes
+│   ├── main.py                # FastAPI app entry
+│   ├── models.py              # Pydantic models
+│   ├── db.py                  # Database layer
+│   ├── requirements.txt       # Python dependencies
+│   └── static/                # Frontend files
+├── saves/                     # Saved design files (not in git)
+├── config.json                # Home Assistant addon config
+├── run.sh                     # Startup script
 └── Dockerfile                 # Docker image
 ```
 
@@ -794,6 +800,7 @@ backend/
 
 ```bash
 # Install dependencies
+cd backend
 pip install -r requirements.txt
 
 # Run with hot reload
