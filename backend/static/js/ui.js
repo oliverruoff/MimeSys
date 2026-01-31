@@ -171,9 +171,9 @@ export class UI {
                 });
                 
                 if (response.ok) {
-                    // Update scene background immediately
-                    if (this.app.sceneManager && this.app.sceneManager.scene) {
-                        this.app.sceneManager.scene.background = new THREE.Color(color);
+                    // Update scene background immediately using SceneManager method
+                    if (this.app.sceneManager && this.app.sceneManager.setBackgroundColor) {
+                        this.app.sceneManager.setBackgroundColor(color);
                     }
                     this.showToast(`Background color updated to ${color}`);
                 }
