@@ -53,7 +53,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 entity_type = "Light" if entity_id.startswith("light.") else "Switch"
                 _LOGGER.warning("🔔 %s state changed: %s (%s -> %s) - TRIGGERING SYNC", 
                            entity_type, entity_id, "ON" if old_on else "OFF", "ON" if new_on else "OFF")
-                await sync_handler.sync_light_state(entity_id, new_state)
+                # Only sync on/off state, preserve brightness and color
+                await sync_handler.sync_light_state(entity_id, new_state, full_sync=False)
             else:
                 entity_type = "light" if entity_id.startswith("light.") else "switch"
                 _LOGGER.debug("⏭️ %s %s changed but on/off state is the same, skipping sync", 
@@ -77,7 +78,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         state = hass.states.get(entity_id)
         if state:
             _LOGGER.warning("🔄 Initial sync for %s: %s", entity_id, state.state)
-            await sync_handler.sync_light_state(entity_id, state)
+            # Full sync on startup to capture brightness and color
+            await sync_handler.sync_light_state(entity_id, state, full_sync=True)
         else:
             _LOGGER.warning("⚠️ Entity %s not found in Home Assistant", entity_id)
     _LOGGER.warning("✅ Initial sync complete!")
@@ -92,7 +94,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if state:
             _LOGGER.warning("🧪 Entity state: %s", state.state)
             _LOGGER.warning("🧪 Entity attributes: %s", state.attributes)
-            await sync_handler.sync_light_state(entity_id, state)
+            # Manual test does full sync
+            await sync_handler.sync_light_state(entity_id, state, full_sync=True)
         else:
             _LOGGER.error("🧪 Entity %s not found!", entity_id)
     
@@ -140,8 +143,14 @@ class MimeSysSyncHandler:
         self.entities = entities
         self.session = async_get_clientsession(hass)
         
-    async def sync_light_state(self, entity_id: str, state):
-        """Sync a light or switch state to MimeSys API using entity_id as light name."""
+    async def sync_light_state(self, entity_id: str, state, full_sync: bool = False):
+        """Sync a light or switch state to MimeSys API using entity_id as light name.
+        
+        Args:
+            entity_id: The Home Assistant entity ID
+            state: The entity state object
+            full_sync: If True, send brightness and color. If False, only send on/off state.
+        """
         try:
             # Extract entity state information
             is_on = state.state == "on"
@@ -149,28 +158,31 @@ class MimeSysSyncHandler:
             attributes = state.attributes
             is_switch = entity_id.startswith("switch.")
             
-            # Switches don't have brightness/color, so use defaults
-            if is_switch:
-                brightness_pct = 100 if is_on else 0
-                rgb_color = [255, 255, 255]  # White for switches
-            else:
-                # Light entity - try to get brightness and color
-                brightness = attributes.get("brightness", 255) if is_on else 0
-                brightness_pct = int((brightness / 255) * 100)
-                
-                # Get RGB color
-                rgb_color = attributes.get("rgb_color")
-                if not rgb_color:
-                    # Default to white if no color specified
-                    rgb_color = [255, 255, 255]
-            
-            # Use entity_id as the light name in the API
+            # Build command - always include name and on state
             command = {
                 "name": entity_id,
-                "on": is_on,
-                "brightness": brightness_pct,
-                "color": list(rgb_color)
+                "on": is_on
             }
+            
+            # Only include brightness and color during full sync or for switches
+            if full_sync or is_switch:
+                # Switches don't have brightness/color, so use defaults
+                if is_switch:
+                    brightness_pct = 100 if is_on else 0
+                    rgb_color = [255, 255, 255]  # White for switches
+                else:
+                    # Light entity - try to get brightness and color
+                    brightness = attributes.get("brightness", 255) if is_on else 0
+                    brightness_pct = int((brightness / 255) * 100)
+                    
+                    # Get RGB color
+                    rgb_color = attributes.get("rgb_color")
+                    if not rgb_color:
+                        # Default to white if no color specified
+                        rgb_color = [255, 255, 255]
+                
+                command["brightness"] = brightness_pct
+                command["color"] = list(rgb_color)
             
             # Build URL
             url = f"{self.api_url}/api/control/lights"
@@ -179,12 +191,15 @@ class MimeSysSyncHandler:
             _LOGGER.warning("-" * 60)
             _LOGGER.warning("📤 SENDING TO MIMESYS API:")
             _LOGGER.warning("📤 Type: %s", entity_type)
+            _LOGGER.warning("📤 Mode: %s", "FULL SYNC" if full_sync else "ON/OFF ONLY")
             _LOGGER.warning("📤 URL: %s", url)
             _LOGGER.warning("📤 Payload: %s", [command])
             _LOGGER.warning("📤 Entity ID (used as light name): %s", entity_id)
             _LOGGER.warning("📤 State: %s", "ON" if is_on else "OFF")
-            _LOGGER.warning("📤 Brightness: %d%%", brightness_pct)
-            _LOGGER.warning("📤 Color: %s", rgb_color)
+            if "brightness" in command:
+                _LOGGER.warning("📤 Brightness: %d%%", command["brightness"])
+            if "color" in command:
+                _LOGGER.warning("📤 Color: %s", command["color"])
             _LOGGER.warning("-" * 60)
             
             # Send to API
