@@ -1,5 +1,7 @@
 {
   "name": "MimeSys Digital Twin Sync",
+  "filename": "mimesys_sync",
   "render_readme": true,
-  "homeassistant": "2023.3.0"
+  "homeassistant": "2023.3.0",
+  "content_in_root": false
 }
