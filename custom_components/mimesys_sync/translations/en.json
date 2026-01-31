@@ -1,0 +1,39 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "MimeSys Digital Twin Sync",
+        "description": "Enter the URL of your MimeSys API server.",
+        "data": {
+          "api_url": "API URL"
+        }
+      },
+      "entities": {
+        "title": "Map Lights",
+        "description": "Map your MimeSys light names to Home Assistant entities. Enter one mapping per line: Light Name = entity_id",
+        "data": {
+          "mappings": "Light Mappings"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to MimeSys API. Please check the URL.",
+      "no_mappings": "Please enter at least one light mapping."
+    },
+    "abort": {
+      "already_configured": "This MimeSys API is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update Configuration",
+        "description": "Update your MimeSys API URL or light mappings.",
+        "data": {
+          "api_url": "API URL",
+          "mappings": "Light Mappings"
+        }
+      }
+    }
+  }
+}
