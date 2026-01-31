@@ -56,6 +56,34 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Make standalone package public
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PACKAGE_NAME="mimesys"
+          echo "Making package ${PACKAGE_NAME} public..."
+          
+          # Wait for package to be fully created
+          sleep 5
+          
+          echo "Setting package visibility to public..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/user/packages/container/${PACKAGE_NAME}" \
+            -d '{"visibility":"public"}')
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          echo "HTTP Response Code: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "204" ]; then
+            echo "✅ Package visibility successfully updated to public"
+          else
+            echo "⚠️ Warning: Could not update package visibility (HTTP $HTTP_CODE)"
+          fi
+
   build-addon:
     runs-on: ubuntu-latest
     permissions:
@@ -87,24 +115,44 @@ jobs:
 
       - name: Make package public
         if: github.event_name != 'pull_request'
-        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PACKAGE_NAME="${{ matrix.arch }}-addon-home-digital-twin"
           echo "Making package ${PACKAGE_NAME} public..."
           
-          # Get package info
-          PACKAGE_VERSION_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/users/${{ github.repository_owner }}/packages/container/${PACKAGE_NAME}/versions" | \
-            jq -r '.[0].id')
+          # Wait a moment for package to be fully created
+          sleep 5
           
-          if [ -n "$PACKAGE_VERSION_ID" ] && [ "$PACKAGE_VERSION_ID" != "null" ]; then
-            # Update package visibility
-            curl -X PATCH \
-              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/user/packages/container/${PACKAGE_NAME}" \
-              -d '{"visibility":"public"}'
-            echo "Package visibility updated to public"
+          # Try to make the package public using GitHub CLI (more reliable)
+          if command -v gh &> /dev/null; then
+            echo "Using GitHub CLI to set package visibility..."
+            gh api \
+              --method PATCH \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              /user/packages/container/${PACKAGE_NAME} \
+              -f visibility='public' || echo "GitHub CLI method failed, trying curl..."
+          fi
+          
+          # Fallback to curl method
+          echo "Using curl to set package visibility..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/user/packages/container/${PACKAGE_NAME}" \
+            -d '{"visibility":"public"}')
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "HTTP Response Code: $HTTP_CODE"
+          echo "Response Body: $BODY"
+          
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "204" ]; then
+            echo "✅ Package visibility successfully updated to public"
           else
-            echo "Could not find package version, may already be public"
+            echo "⚠️ Warning: Could not update package visibility (HTTP $HTTP_CODE)"
+            echo "You may need to manually set the package to public in GitHub settings"
           fi
