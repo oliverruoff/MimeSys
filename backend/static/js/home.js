@@ -226,10 +226,10 @@ export class HomeRenderer {
     createLight(lightData, parent, homeId, floorId) {
         const { id, position, state, name } = lightData;
         const geo = new THREE.SphereGeometry(0.2, 16, 16);
-        const mat = new THREE.MeshStandardMaterial({
-            color: state.on ? state.color : 0x4a4a4a,
-            emissive: state.on ? state.color : 0x000000,
-            emissiveIntensity: state.on ? 1 : 0
+        // Use MeshBasicMaterial so light bulbs aren't affected by other lights
+        // This avoids the WebGL shader compilation limit of ~16 lights
+        const mat = new THREE.MeshBasicMaterial({
+            color: state.on ? state.color : 0x4a4a4a
         });
         const mesh = new THREE.Mesh(geo, mat);
 
@@ -285,11 +285,9 @@ export class HomeRenderer {
                 if (obj) {
                     const state = lightData.state;
                     // console.log(`DEBUG: Updating light ${lightData.name}: on=${state.on}`);
-                    // Update material emissive
+                    // Update material color (MeshBasicMaterial only has color, not emissive)
                     if (obj.material) {
                         obj.material.color.setHex(state.on ? parseInt(state.color.replace('#', '0x')) : 0x4a4a4a);
-                        obj.material.emissive.setHex(state.on ? parseInt(state.color.replace('#', '0x')) : 0x000000);
-                        obj.material.emissiveIntensity = state.on ? 1 : 0;
                     }
 
                     // Update PointLight if it exists (it's a child of the parent group usually)
