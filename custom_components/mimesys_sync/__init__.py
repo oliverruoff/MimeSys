@@ -68,6 +68,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register update listener for config changes
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     
+    # Sync initial state of all monitored entities
+    _LOGGER.warning("🔄 Syncing initial state of all monitored entities...")
+    for entity_id in entities:
+        state = hass.states.get(entity_id)
+        if state:
+            _LOGGER.warning("🔄 Initial sync for %s: %s", entity_id, state.state)
+            await sync_handler.sync_light_state(entity_id, state)
+        else:
+            _LOGGER.warning("⚠️ Entity %s not found in Home Assistant", entity_id)
+    _LOGGER.warning("✅ Initial sync complete!")
+    
     # Register test service for manual debugging
     async def handle_test_sync(call: ServiceCall):
         """Service to manually trigger sync for debugging."""
