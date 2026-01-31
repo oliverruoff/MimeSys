@@ -3,16 +3,16 @@
     "step": {
       "user": {
         "title": "MimeSys Digital Twin Sync",
-        "description": "Configure your MimeSys integration. Select the light entities you want to sync. The entity ID will be used as the light name in MimeSys.",
+        "description": "Configure your MimeSys integration. Select the light or switch entities you want to sync. The entity ID will be used as the light name in MimeSys.",
         "data": {
           "api_url": "API URL",
-          "entities": "Light Entities to Sync"
+          "entities": "Light/Switch Entities to Sync"
         }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect to MimeSys API. Please check the URL.",
-      "no_entities": "Please select at least one light entity to sync."
+      "no_entities": "Please select at least one light or switch entity to sync."
     },
     "abort": {
       "already_configured": "This MimeSys API is already configured."
@@ -25,7 +25,7 @@
         "description": "Update your MimeSys API URL or selected entities.",
         "data": {
           "api_url": "API URL",
-          "entities": "Light Entities to Sync"
+          "entities": "Light/Switch Entities to Sync"
         }
       }
     }

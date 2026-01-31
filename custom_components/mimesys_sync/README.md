@@ -1,12 +1,13 @@
 # MimeSys Digital Twin Sync - Home Assistant Integration
 
-This Home Assistant integration automatically syncs your real smart home light states with your MimeSys 3D Digital Twin, creating a live visualization of your home's lighting.
+This Home Assistant integration automatically syncs your real smart home light and switch states with your MimeSys 3D Digital Twin, creating a live visualization of your home's lighting.
 
 ## Features
 
-- Real-time light state synchronization (on/off, brightness, color)
-- Automatic updates when you control lights through Home Assistant
+- Real-time light and switch state synchronization (on/off, brightness, color)
+- Automatic updates when you control lights or switches through Home Assistant
 - Support for RGB color lights
+- Support for switch entities (displayed as lights in 3D)
 - Simple configuration through Home Assistant UI
 - Works with the MimeSys addon or standalone deployment
 
@@ -40,16 +41,19 @@ Enter your MimeSys API URL:
 
 ### Step 2: Select Entities
 
-Select the light entities you want to sync from the dropdown list. The entity ID will automatically be used as the light name in MimeSys.
+Select the light or switch entities you want to sync from the dropdown list. The entity ID will automatically be used as the light name in MimeSys.
 
-**Example:**
-- You select: `light.eg_flur_licht`
-- The integration will send this entity ID to MimeSys
-- Your light in MimeSys must be named: `light.eg_flur_licht` (exactly!)
+**Examples:**
+- You select: `light.eg_flur_licht` → Light entity
+- You select: `switch.garden_lights` → Switch entity (will control a light in MimeSys)
+- The integration will send these entity IDs to MimeSys
+- Your lights in MimeSys must be named exactly the same
+
+**Why switches?** Many users control lights through switch entities (e.g., smart plugs, relay switches). The integration treats these as lights in the 3D model.
 
 ## Setting Up Your Lights in MimeSys
 
-**CRITICAL:** Light names in MimeSys must match your Home Assistant entity IDs **exactly**.
+**CRITICAL:** Light names in MimeSys must match your Home Assistant entity IDs **exactly** (including switches if you're syncing them).
 
 ### Steps:
 
@@ -57,29 +61,34 @@ Select the light entities you want to sync from the dropdown list. The entity ID
 2. **Add lights** to your 3D model using the "Add Light" tool
 3. **Name each light** in the sidebar to match your HA entity ID **exactly**
 
-### Example:
+### Examples:
 
 If you have these Home Assistant entities:
-- `light.eg_flur_licht`
-- `light.living_room`
-- `light.kitchen_ceiling`
+- `light.eg_flur_licht` (light entity)
+- `light.living_room` (light entity)
+- `switch.garden_lights` (switch entity controlling lights)
+- `switch.porch_lamp` (switch entity)
 
 Then name your MimeSys lights:
 - `light.eg_flur_licht` ✅
 - `light.living_room` ✅
-- `light.kitchen_ceiling` ✅
+- `switch.garden_lights` ✅
+- `switch.porch_lamp` ✅
 
 **Not:**
 - `Flur Licht` ❌
 - `Living Room` ❌
-- `Kitchen` ❌
+- `Garden Lights` ❌ (missing "switch." prefix)
+- `Porch Lamp` ❌
 
 ## How It Works
 
-1. The integration listens for state changes on your selected light entities
-2. When a light turns on or off, it sends the update to the MimeSys API
-3. The MimeSys API matches the entity ID to the light name
-4. The 3D model updates in real-time
+1. The integration listens for state changes on your selected light and switch entities
+2. When a light/switch turns on or off, it sends the update to the MimeSys API
+3. For lights: brightness and color are included
+4. For switches: full brightness and white color are used (switches don't have these attributes)
+5. The MimeSys API matches the entity ID to the light name
+6. The 3D model updates in real-time
 
 ## Troubleshooting
 
@@ -121,20 +130,22 @@ curl -X POST http://localhost:8000/api/control/lights \
 ## Example Configuration
 
 **Home Assistant:**
-- Entity: `light.eg_flur_licht`
-- Entity: `light.living_room_main`
-- Entity: `light.bedroom_lamp`
+- Entity: `light.eg_flur_licht` (light)
+- Entity: `light.living_room_main` (light)
+- Entity: `switch.bedroom_lamp` (switch)
+- Entity: `switch.garden_lights` (switch)
 
 **MimeSys Editor:**
 - Light name: `light.eg_flur_licht`
 - Light name: `light.living_room_main`
-- Light name: `light.bedroom_lamp`
+- Light name: `switch.bedroom_lamp`
+- Light name: `switch.garden_lights`
 
 **Integration Config:**
 - API URL: `http://localhost:8000`
-- Selected entities: All three lights from the dropdown
+- Selected entities: All four entities from the dropdown
 
-**Result:** When you toggle any of these lights in Home Assistant, the 3D model updates instantly!
+**Result:** When you toggle any of these lights or switches in Home Assistant, the 3D model updates instantly!
 
 ## Support
 

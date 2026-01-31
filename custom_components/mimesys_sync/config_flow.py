@@ -46,14 +46,14 @@ class MimeSysSyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_API_URL, default=DEFAULT_API_URL): str,
                 vol.Required(CONF_ENTITIES): selector.EntitySelector(
                     selector.EntitySelectorConfig(
-                        domain="light",
+                        domain=["light", "switch"],
                         multiple=True
                     )
                 ),
             }),
             errors=errors,
             description_placeholders={
-                "info": "Select the light entities you want to sync with MimeSys. The entity ID will be used as the light name in the API."
+                "info": "Select light or switch entities to sync with MimeSys. The entity ID will be used as the light name in the API."
             }
         )
 
@@ -105,7 +105,7 @@ class MimeSysOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_API_URL, default=current_api_url): str,
                 vol.Optional(CONF_ENTITIES, default=current_entities): selector.EntitySelector(
                     selector.EntitySelectorConfig(
-                        domain="light",
+                        domain=["light", "switch"],
                         multiple=True
                     )
                 ),
