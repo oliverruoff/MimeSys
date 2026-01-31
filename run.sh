@@ -20,6 +20,15 @@ export DATA_DIR="$DATA_DIR"
 # Create data directory if it doesn't exist
 mkdir -p "$DATA_DIR/saves"
 
+# Verify static files exist
+if [ -d "/app/static" ]; then
+    echo "Static directory found at /app/static"
+    ls -la /app/static/ || echo "Could not list static directory"
+else
+    echo "ERROR: Static directory not found!"
+fi
+
 # Start the application
 cd /app
+echo "Starting uvicorn on 0.0.0.0:8000..."
 exec uvicorn main:app --host 0.0.0.0 --port 8000
