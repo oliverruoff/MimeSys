@@ -77,5 +77,5 @@ jobs:
           args: |
             --${{ matrix.arch }} \
             --target . \
-            --image "${{ env.DOCKERHUB_USERNAME }}/${{ matrix.arch }}-addon-home-digital-twin" \
-            --docker-hub-check
+            --image "${{ matrix.arch }}-addon-home-digital-twin" \
+            --docker-hub ${{ env.DOCKERHUB_USERNAME }}
