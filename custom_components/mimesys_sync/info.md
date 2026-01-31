@@ -4,32 +4,28 @@ Sync your Home Assistant lights with your MimeSys 3D Digital Twin in real-time!
 
 ## Features
 
-✨ **Real-time synchronization** - Lights update instantly in your 3D model
+✨ **Real-time synchronization** - Lights update instantly in your 3D model when toggled on/off
 🎨 **Full color support** - Syncs brightness and RGB colors
-🏠 **Easy setup** - Simple UI configuration through Home Assistant
+🏠 **Super simple setup** - Just select which lights to sync, no manual mapping needed
 🔌 **Works with everything** - Voice assistants, automations, physical switches
 
 ## Quick Start
 
 1. **Install the integration** via HACS
-2. **Configure API URL**: `http://localhost:8000` (if using MimeSys addon)
-3. **Map your lights** using simple text format:
-   ```
-   Living Room = light.living_room_main
-   Kitchen = light.kitchen_ceiling
-   Bedroom = light.bedroom_lamp
-   ```
-4. **Done!** Your 3D model now reflects real-time light states
+2. **Configure**:
+   - API URL: `http://localhost:8000` (if using MimeSys addon)
+   - Select the light entities you want to sync
+3. **Done!** The entity ID is automatically used as the light name in MimeSys
 
-## Prerequisites
+## Important
 
-- MimeSys addon installed and running (or standalone deployment)
-- Lights created in MimeSys 3D editor
-- Light names in MimeSys should match your mapping configuration
+Make sure your lights in the MimeSys 3D editor are named exactly like your Home Assistant entity IDs.
 
-## How It Works
+**Example:**
+- Home Assistant entity: `light.living_room`
+- MimeSys light name: `light.living_room`
 
-The integration listens for Home Assistant light state changes and automatically sends updates to your MimeSys API. Any light control (UI, voice, automation, or physical switch) instantly reflects in your 3D visualization.
+The integration will automatically match them!
 
 ## Support
 

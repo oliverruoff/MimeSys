@@ -3,6 +3,6 @@
 DOMAIN = "mimesys_sync"
 
 CONF_API_URL = "api_url"
-CONF_ENTITY_MAPPINGS = "entity_mappings"
+CONF_ENTITIES = "entities"
 
 DEFAULT_API_URL = "http://localhost:8000"
