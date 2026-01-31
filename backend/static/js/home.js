@@ -247,7 +247,9 @@ export class HomeRenderer {
         if (state.on) {
             const light = new THREE.PointLight(state.color, state.intensity * 5, 15);
             light.position.set(position.x, relativeY, position.z);
-            light.castShadow = true;
+            // Disable shadows on PointLights to avoid WebGL limit (max ~8-16 shadow-casting lights)
+            // Sun/directional lights provide global shadows instead
+            light.castShadow = false;
             parent.add(light);
         }
     }
