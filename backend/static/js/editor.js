@@ -46,6 +46,19 @@ export class Editor {
         this.measurementLabel = document.getElementById('wall-measurement-label') || this.createMeasurementLabelFallback();
     }
 
+    // UUID generator compatible with older browsers (Home Assistant environment)
+    generateUUID() {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        // Fallback for environments without crypto.randomUUID
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     createMeasurementLabelFallback() {
         // Fallback if HTML is not updated yet
         const el = document.createElement('div');
@@ -343,7 +356,7 @@ export class Editor {
     addLight(pos) {
         if (!this.getCurrentFloor()) return;
         const newLight = {
-            id: crypto.randomUUID(), // Ensure unique ID
+            id: this.generateUUID(), // Ensure unique ID
             name: "New Light",
             position: { x: pos.x, y: pos.y + 2.0, z: pos.z },
             state: { on: true, color: "#ffffff", intensity: 1.0 }
@@ -365,7 +378,7 @@ export class Editor {
     addCube(pos) {
         if (!this.getCurrentFloor()) return;
         const newCube = {
-            id: crypto.randomUUID(),
+            id: this.generateUUID(),
             name: "Cube",
             position: { x: pos.x, y: pos.y + 0.5, z: pos.z },
             rotation: 0,
