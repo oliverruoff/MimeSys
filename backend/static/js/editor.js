@@ -48,8 +48,13 @@ export class Editor {
 
     // UUID generator compatible with older browsers (Home Assistant environment)
     generateUUID() {
-        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-            return crypto.randomUUID();
+        // Check if crypto.randomUUID is available and is a function
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            try {
+                return crypto.randomUUID();
+            } catch (e) {
+                console.warn('crypto.randomUUID failed, using fallback:', e);
+            }
         }
         // Fallback for environments without crypto.randomUUID
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
