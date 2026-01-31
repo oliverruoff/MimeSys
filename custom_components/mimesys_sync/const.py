@@ -5,4 +5,4 @@ DOMAIN = "mimesys_sync"
 CONF_API_URL = "api_url"
 CONF_ENTITIES = "entities"
 
-DEFAULT_API_URL = "http://localhost:8000"
+DEFAULT_API_URL = "http://homeassistant.local:8000"

@@ -53,7 +53,7 @@ class MimeSysSyncConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }),
             errors=errors,
             description_placeholders={
-                "info": "Select light or switch entities to sync with MimeSys. The entity ID will be used as the light name in the API."
+                "info": "Select light and switch entities to sync with MimeSys. The entity ID will be used as the light name in the API."
             }
         )
 
