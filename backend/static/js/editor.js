@@ -225,6 +225,11 @@ export class Editor {
         this.raycaster.setFromCamera(this.mouse, this.sceneManager.camera);
         const intersects = this.raycaster.intersectObjects(this.homeRenderer.interactables, false);
 
+        // If editor is in an active mode, prevent controls from handling the click
+        if (this.enabled && ['light', 'cube', 'wall', 'floor_poly', 'delete'].includes(this.mode)) {
+            e.stopPropagation();
+        }
+
         // Handle delete mode FIRST (before selection logic)
         if (this.enabled && this.mode === 'delete') {
             if (intersects.length > 0) {

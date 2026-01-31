@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 
 export class Controls {
-    constructor(camera, domElement) {
+    constructor(camera, domElement, editor = null) {
         this.camera = camera;
         this.domElement = domElement;
+        this.editor = editor;
         this.isDragging = false;
         this.previousMousePosition = { x: 0, y: 0 };
         this.interactables = [];
@@ -154,6 +155,12 @@ export class Controls {
     }
 
     async onClick(e) {
+        // Don't handle clicks if editor is in an active editing mode
+        if (this.editor && this.editor.enabled && 
+            ['light', 'cube', 'wall', 'floor_poly', 'delete'].includes(this.editor.mode)) {
+            return; // Let editor handle the click
+        }
+
         // Raycasting
         // Normalized device coordinates
         const rect = this.domElement.getBoundingClientRect();

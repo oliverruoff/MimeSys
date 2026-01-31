@@ -12,8 +12,8 @@ class App {
 
         this.sceneManager = new SceneManager(this.container);
         this.homeRenderer = new HomeRenderer(this.sceneManager.scene);
-        this.controls = new Controls(this.sceneManager.camera, this.container); // Re-enabled
         this.editor = new Editor(this.sceneManager, this.homeRenderer);
+        this.controls = new Controls(this.sceneManager.camera, this.container, this.editor); // Pass editor
         this.ui = new UI(this);
 
         this.editor.setNotificationCallback((msg) => {
