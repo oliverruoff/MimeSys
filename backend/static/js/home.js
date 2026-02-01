@@ -124,23 +124,19 @@ export class HomeRenderer {
                     floorGroup.scale.y = targetScale;
                     floorGroup.position.y = (level * 2.5) * targetScale;
                     
-                    // Set light visibility based on initial state
-                    const lightsInFloor = floorGroup.children.filter(child => 
-                        child.userData && (child.userData.type === 'light' || child.userData.type === 'pointLight')
+                    // Set PointLight visibility based on initial state (not sphere meshes)
+                    const pointLightsInFloor = floorGroup.children.filter(child => 
+                        child.userData && child.userData.type === 'pointLight'
                     );
                     
                     if (shouldBeVisible) {
-                        // Floor is visible, show lights that are on
-                        lightsInFloor.forEach(light => {
-                            if (light.userData.type === 'pointLight') {
-                                light.visible = light.intensity > 0;
-                            } else if (light.userData.type === 'light') {
-                                light.visible = light.userData.state?.on || false;
-                            }
+                        // Floor is visible, show PointLights that are on
+                        pointLightsInFloor.forEach(light => {
+                            light.visible = light.intensity > 0;
                         });
                     } else {
-                        // Floor is hidden, hide all lights
-                        lightsInFloor.forEach(light => {
+                        // Floor is hidden, hide all PointLights
+                        pointLightsInFloor.forEach(light => {
                             light.visible = false;
                         });
                     }
@@ -156,31 +152,27 @@ export class HomeRenderer {
                         floorGroup.position.y = (level * 2.5) * targetScale;
                         floorGroup.visible = shouldBeVisible;
                         
-                        // Set light visibility in immediate mode
-                        const lightsInFloor = floorGroup.children.filter(child => 
-                            child.userData && (child.userData.type === 'light' || child.userData.type === 'pointLight')
+                        // Set PointLight visibility in immediate mode (not sphere meshes)
+                        const pointLightsInFloor = floorGroup.children.filter(child => 
+                            child.userData && child.userData.type === 'pointLight'
                         );
                         
                         if (shouldBeVisible) {
-                            lightsInFloor.forEach(light => {
-                                if (light.userData.type === 'pointLight') {
-                                    light.visible = light.intensity > 0;
-                                } else if (light.userData.type === 'light') {
-                                    light.visible = light.userData.state?.on || false;
-                                }
+                            pointLightsInFloor.forEach(light => {
+                                light.visible = light.intensity > 0;
                             });
                         } else {
-                            lightsInFloor.forEach(light => {
+                            pointLightsInFloor.forEach(light => {
                                 light.visible = false;
                             });
                         }
                     } else {
-                        // In animated mode, hide lights immediately when starting to transition out
+                        // In animated mode, hide PointLights immediately when starting to transition out
                         if (targetScale === 0) {
-                            const lightsInFloor = floorGroup.children.filter(child => 
-                                child.userData && (child.userData.type === 'light' || child.userData.type === 'pointLight')
+                            const pointLightsInFloor = floorGroup.children.filter(child => 
+                                child.userData && child.userData.type === 'pointLight'
                             );
-                            lightsInFloor.forEach(light => {
+                            pointLightsInFloor.forEach(light => {
                                 light.visible = false;
                             });
                         }
@@ -217,33 +209,29 @@ export class HomeRenderer {
             const baseY = level * 2.5;
             floorGroup.position.y = baseY * newScale;
             
-            // Light visibility control based on transition state
-            // Hide lights immediately when starting to transition out (targetScale = 0)
-            // Show lights only after transition in is complete (newScale >= 0.99)
-            const lightsInFloor = floorGroup.children.filter(child => 
-                child.userData && (child.userData.type === 'light' || child.userData.type === 'pointLight')
+            // PointLight visibility control based on transition state
+            // Hide PointLights immediately when starting to transition out (targetScale = 0)
+            // Show PointLights only after transition in is complete (newScale >= 0.99)
+            // Note: Light sphere meshes stay hidden via setGizmoVisibility(false) in showcase view
+            const pointLightsInFloor = floorGroup.children.filter(child => 
+                child.userData && child.userData.type === 'pointLight'
             );
             
             if (targetScale === 0) {
-                // Transitioning out - hide all lights immediately
-                lightsInFloor.forEach(light => {
+                // Transitioning out - hide all PointLights immediately
+                pointLightsInFloor.forEach(light => {
                     light.visible = false;
                 });
             } else if (targetScale === 1) {
-                // Transitioning in - only show lights when transition is complete
+                // Transitioning in - only show PointLights when transition is complete
                 if (newScale >= 0.99) {
-                    lightsInFloor.forEach(light => {
-                        // Only make visible if the light is actually on (check PointLight intensity)
-                        if (light.userData.type === 'pointLight') {
-                            light.visible = light.intensity > 0;
-                        } else if (light.userData.type === 'light') {
-                            // For light bulb mesh, check the state
-                            light.visible = light.userData.state?.on || false;
-                        }
+                    pointLightsInFloor.forEach(light => {
+                        // Only make visible if the light is actually on (check intensity)
+                        light.visible = light.intensity > 0;
                     });
                 } else {
-                    // Still transitioning in - keep lights hidden
-                    lightsInFloor.forEach(light => {
+                    // Still transitioning in - keep PointLights hidden
+                    pointLightsInFloor.forEach(light => {
                         light.visible = false;
                     });
                 }
