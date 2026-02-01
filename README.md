@@ -10,6 +10,10 @@ Create a stunning 3D visualization of your home that syncs in real-time with you
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-addon-blue.svg)
 ![HACS](https://img.shields.io/badge/HACS-compatible-green.svg)
 
+## Screenshot
+
+![MimeSys 3D Home Visualization](Mimesys_Screenshot.png)
+
 ---
 
 ## Quick Start for Home Assistant Users
