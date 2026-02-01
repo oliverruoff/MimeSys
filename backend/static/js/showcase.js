@@ -25,9 +25,13 @@ class ShowcaseApp {
                 this.home = home;
                 this.homeRenderer.render(home);
 
+                // Track applied background color
+                this.currentBackgroundColor = null;
+
                 // Apply background color from home data
                 if (home.background_color) {
                     this.sceneManager.setBackgroundColor(home.background_color);
+                    this.currentBackgroundColor = home.background_color;
                 }
 
                 // Calculate house center and bounds
@@ -129,6 +133,12 @@ class ShowcaseApp {
                 if (updatedHome && updatedHome.id) {
                     // Update lights
                     this.homeRenderer.updateLights(updatedHome);
+
+                    // Check and update background color if changed
+                    if (updatedHome.background_color && updatedHome.background_color !== this.currentBackgroundColor) {
+                        this.sceneManager.setBackgroundColor(updatedHome.background_color);
+                        this.currentBackgroundColor = updatedHome.background_color;
+                    }
 
                     // Update local ref
                     this.home = updatedHome;
