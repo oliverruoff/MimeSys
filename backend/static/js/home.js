@@ -123,6 +123,27 @@ export class HomeRenderer {
                     floorGroup.visible = shouldBeVisible;
                     floorGroup.scale.y = targetScale;
                     floorGroup.position.y = (level * 2.5) * targetScale;
+                    
+                    // Set light visibility based on initial state
+                    const lightsInFloor = floorGroup.children.filter(child => 
+                        child.userData && (child.userData.type === 'light' || child.userData.type === 'pointLight')
+                    );
+                    
+                    if (shouldBeVisible) {
+                        // Floor is visible, show lights that are on
+                        lightsInFloor.forEach(light => {
+                            if (light.userData.type === 'pointLight') {
+                                light.visible = light.intensity > 0;
+                            } else if (light.userData.type === 'light') {
+                                light.visible = light.userData.state?.on || false;
+                            }
+                        });
+                    } else {
+                        // Floor is hidden, hide all lights
+                        lightsInFloor.forEach(light => {
+                            light.visible = false;
+                        });
+                    }
                 } else {
                     // Update target scale for existing floors
                     const transitionState = this.floorTransitions.get(level);
@@ -134,6 +155,35 @@ export class HomeRenderer {
                         floorGroup.scale.y = targetScale;
                         floorGroup.position.y = (level * 2.5) * targetScale;
                         floorGroup.visible = shouldBeVisible;
+                        
+                        // Set light visibility in immediate mode
+                        const lightsInFloor = floorGroup.children.filter(child => 
+                            child.userData && (child.userData.type === 'light' || child.userData.type === 'pointLight')
+                        );
+                        
+                        if (shouldBeVisible) {
+                            lightsInFloor.forEach(light => {
+                                if (light.userData.type === 'pointLight') {
+                                    light.visible = light.intensity > 0;
+                                } else if (light.userData.type === 'light') {
+                                    light.visible = light.userData.state?.on || false;
+                                }
+                            });
+                        } else {
+                            lightsInFloor.forEach(light => {
+                                light.visible = false;
+                            });
+                        }
+                    } else {
+                        // In animated mode, hide lights immediately when starting to transition out
+                        if (targetScale === 0) {
+                            const lightsInFloor = floorGroup.children.filter(child => 
+                                child.userData && (child.userData.type === 'light' || child.userData.type === 'pointLight')
+                            );
+                            lightsInFloor.forEach(light => {
+                                light.visible = false;
+                            });
+                        }
                     }
                 }
             }
@@ -166,6 +216,38 @@ export class HomeRenderer {
             // Adjust position to make it grow/shrink from ground up
             const baseY = level * 2.5;
             floorGroup.position.y = baseY * newScale;
+            
+            // Light visibility control based on transition state
+            // Hide lights immediately when starting to transition out (targetScale = 0)
+            // Show lights only after transition in is complete (newScale >= 0.99)
+            const lightsInFloor = floorGroup.children.filter(child => 
+                child.userData && (child.userData.type === 'light' || child.userData.type === 'pointLight')
+            );
+            
+            if (targetScale === 0) {
+                // Transitioning out - hide all lights immediately
+                lightsInFloor.forEach(light => {
+                    light.visible = false;
+                });
+            } else if (targetScale === 1) {
+                // Transitioning in - only show lights when transition is complete
+                if (newScale >= 0.99) {
+                    lightsInFloor.forEach(light => {
+                        // Only make visible if the light is actually on (check PointLight intensity)
+                        if (light.userData.type === 'pointLight') {
+                            light.visible = light.intensity > 0;
+                        } else if (light.userData.type === 'light') {
+                            // For light bulb mesh, check the state
+                            light.visible = light.userData.state?.on || false;
+                        }
+                    });
+                } else {
+                    // Still transitioning in - keep lights hidden
+                    lightsInFloor.forEach(light => {
+                        light.visible = false;
+                    });
+                }
+            }
             
             // When shrunk to nearly zero, hide the floor completely
             if (targetScale === 0 && newScale < 0.01) {
@@ -252,6 +334,11 @@ export class HomeRenderer {
         // Sun/directional lights provide global shadows instead
         light.castShadow = false;
         light.userData = { type: 'pointLight', lightId: id };
+        
+        // Start with lights hidden - they will be shown by animateFloorTransitions when appropriate
+        mesh.visible = false;
+        light.visible = false;
+        
         parent.add(light);
     }
 
