@@ -244,14 +244,15 @@ export class HomeRenderer {
         this.gizmos.push(mesh);
         parent.add(mesh);
 
-        if (state.on) {
-            const light = new THREE.PointLight(state.color, state.intensity * 5, 15);
-            light.position.set(position.x, relativeY, position.z);
-            // Disable shadows on PointLights to avoid WebGL limit (max ~8-16 shadow-casting lights)
-            // Sun/directional lights provide global shadows instead
-            light.castShadow = false;
-            parent.add(light);
-        }
+        // Always create a PointLight, but set intensity to 0 when off
+        // This ensures the light can be turned on via API updates
+        const light = new THREE.PointLight(state.color, state.on ? state.intensity * 5 : 0, 15);
+        light.position.set(position.x, relativeY, position.z);
+        // Disable shadows on PointLights to avoid WebGL limit (max ~8-16 shadow-casting lights)
+        // Sun/directional lights provide global shadows instead
+        light.castShadow = false;
+        light.userData = { type: 'pointLight', lightId: id };
+        parent.add(light);
     }
 
     createCube(cubeData, parent, floorId) {
@@ -294,15 +295,16 @@ export class HomeRenderer {
                         obj.material.color.setHex(state.on ? parseInt(state.color.replace('#', '0x')) : 0x4a4a4a);
                     }
 
-                    // Update PointLight if it exists (it's a child of the parent group usually)
+                    // Update PointLight - find it by userData.lightId
                     if (obj.parent) {
-                        obj.parent.children.forEach(child => {
-                            // Match position to identify the point light paired with this mesh
-                            if (child.isPointLight && child.position.equals(obj.position)) {
-                                child.color.setHex(parseInt(state.color.replace('#', '0x')));
-                                child.intensity = state.on ? state.intensity * 5 : 0;
-                            }
-                        });
+                        const pointLight = obj.parent.children.find(child => 
+                            child.userData && child.userData.type === 'pointLight' && child.userData.lightId === lightData.id
+                        );
+                        
+                        if (pointLight) {
+                            pointLight.color.setHex(parseInt(state.color.replace('#', '0x')));
+                            pointLight.intensity = state.on ? state.intensity * 5 : 0;
+                        }
                     }
 
                     // Update internal state
