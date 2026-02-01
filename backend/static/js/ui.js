@@ -178,6 +178,12 @@ export class UI {
                     if (this.app.sceneManager && this.app.sceneManager.setBackgroundColor) {
                         this.app.sceneManager.setBackgroundColor(color);
                     }
+                    
+                    // Update local home model so save() operations include the new color
+                    if (this.app.homeRenderer && this.app.homeRenderer.currentHome) {
+                        this.app.homeRenderer.currentHome.background_color = color;
+                    }
+                    
                     this.showToast(`Background color updated to ${color}`);
                 }
             } catch (err) {
