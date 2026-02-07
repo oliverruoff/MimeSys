@@ -13,7 +13,70 @@ class ShowcaseApp {
         this.radius = 30;
         this.height = 20;
 
+        // Config from URL
+        this.config = {
+            revolve: true,
+            floor: 'auto',
+            angle: 0
+        };
+        this.lastHref = window.location.href;
+        this.updateConfigFromURL();
+
+        // Listen for URL changes
+        window.addEventListener('popstate', () => this.updateConfigFromURL());
+
         this.init();
+    }
+
+    updateConfigFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        
+        // revolve=true|false (case-insensitive)
+        const revolveParam = params.get('revolve');
+        if (revolveParam !== null) {
+            this.config.revolve = revolveParam.toLowerCase() !== 'false';
+        } else {
+            this.config.revolve = true;
+        }
+
+        // floor=auto|<int>
+        const floorParam = params.get('floor');
+        if (floorParam === null || floorParam.toLowerCase() === 'auto') {
+            this.config.floor = 'auto';
+        } else {
+            const floorInt = parseInt(floorParam);
+            if (isNaN(floorInt) || floorInt < 0) {
+                this.config.floor = 0;
+            } else {
+                this.config.floor = floorInt;
+            }
+        }
+
+        // angle=<number> (degrees)
+        const angleParam = params.get('angle');
+        let angleDeg = 0;
+        if (angleParam !== null) {
+            angleDeg = parseFloat(angleParam);
+            if (isNaN(angleDeg)) angleDeg = 0;
+        }
+        // Normalize degrees to 0-359 and convert to radians
+        this.config.angle = (((angleDeg % 360) + 360) % 360) * (Math.PI / 180);
+
+        // If not revolving, set current angle to the one from URL
+        if (!this.config.revolve) {
+            this.angle = this.config.angle;
+        }
+
+        // Apply immediately if home is loaded
+        if (this.home && this.config.floor !== 'auto') {
+            // "If floor is invalid or out of range... fallback to floor 0"
+            let targetFloor = this.config.floor;
+            if (this.maxLevel !== undefined && targetFloor > this.maxLevel) {
+                targetFloor = 0;
+            }
+            this.currentMaxFloor = targetFloor;
+            this.homeRenderer.setVisibleFloorLimit(this.currentMaxFloor);
+        }
     }
 
     async init() {
@@ -40,8 +103,14 @@ class ShowcaseApp {
                 // Adjust camera distance based on house size and viewport aspect ratio
                 this.adjustCameraForViewport();
 
-                // Start with just ground floor (Level 0)
-                this.currentMaxFloor = 0;
+                // Start with requested floor or default to 0
+                if (this.config.floor === 'auto') {
+                    this.currentMaxFloor = 0;
+                } else {
+                    this.currentMaxFloor = this.config.floor;
+                    if (this.currentMaxFloor > this.maxLevel) this.currentMaxFloor = 0;
+                }
+
                 this.floorDirection = 1; // 1 for up, -1 for down
                 this.lastFloorSwitch = performance.now();
 
@@ -81,6 +150,8 @@ class ShowcaseApp {
             }
             maxLevel = Math.max(maxLevel, floor.level);
         });
+
+        this.maxLevel = maxLevel; // Store for range checking
 
         // Calculate center and size
         this.houseCenter = {
@@ -152,37 +223,48 @@ class ShowcaseApp {
     animate() {
         requestAnimationFrame(() => this.animate());
 
+        // Check for URL changes (handles pushState)
+        if (this.lastHref !== window.location.href) {
+            this.updateConfigFromURL();
+            this.lastHref = window.location.href;
+        }
+
         // Floor Cycling Logic
         if (this.home && this.home.floors && this.home.floors.length > 0) {
-            const now = performance.now();
-            if (now - this.lastFloorSwitch > 5000) {
-                // Update floor level
-                this.currentMaxFloor += this.floorDirection;
+            if (this.config.floor === 'auto') {
+                const now = performance.now();
+                if (now - this.lastFloorSwitch > 5000) {
+                    // Update floor level
+                    this.currentMaxFloor += this.floorDirection;
 
-                // Ping-pong logic
-                if (this.currentMaxFloor >= this.home.floors.length) {
-                    this.currentMaxFloor = this.home.floors.length - 2; // Step back down
-                    if (this.currentMaxFloor < 0) this.currentMaxFloor = 0; // Safety for single floor
-                    this.floorDirection = -1;
-                } else if (this.currentMaxFloor < 0) {
-                    this.currentMaxFloor = 1; // Step back up
-                    if (this.currentMaxFloor >= this.home.floors.length) this.currentMaxFloor = 0; // Safety
-                    this.floorDirection = 1;
+                    // Ping-pong logic
+                    if (this.currentMaxFloor >= this.home.floors.length) {
+                        this.currentMaxFloor = this.home.floors.length - 2; // Step back down
+                        if (this.currentMaxFloor < 0) this.currentMaxFloor = 0; // Safety for single floor
+                        this.floorDirection = -1;
+                    } else if (this.currentMaxFloor < 0) {
+                        this.currentMaxFloor = 1; // Step back up
+                        if (this.currentMaxFloor >= this.home.floors.length) this.currentMaxFloor = 0; // Safety
+                        this.floorDirection = 1;
+                    }
+
+                    // Apply visibility
+                    this.homeRenderer.setVisibleFloorLimit(this.currentMaxFloor);
+                    this.lastFloorSwitch = now;
                 }
-
-                // Apply visibility
-                this.homeRenderer.setVisibleFloorLimit(this.currentMaxFloor);
-                this.lastFloorSwitch = now;
             }
         }
 
         // Orbit Logic
-        this.angle += 0.002; // Slow rotation
+        if (this.config.revolve) {
+            this.angle += 0.002; // Slow rotation
+        }
         const x = this.houseCenter.x + Math.sin(this.angle) * this.radius;
         const z = this.houseCenter.z + Math.cos(this.angle) * this.radius;
 
         this.sceneManager.camera.position.set(x, this.height, z);
         this.sceneManager.camera.lookAt(this.houseCenter.x, this.houseCenter.y, this.houseCenter.z);
+
 
         // Smart Walls Update
         if (this.homeRenderer.updateSmartWalls) {
