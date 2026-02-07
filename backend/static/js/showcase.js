@@ -16,7 +16,8 @@ class ShowcaseApp {
         // Config from URL
         this.config = {
             revolve: true,
-            floor: 'auto'
+            floor: 'auto',
+            angle: 0
         };
         this.lastHref = window.location.href;
         this.updateConfigFromURL();
@@ -49,6 +50,21 @@ class ShowcaseApp {
             } else {
                 this.config.floor = floorInt;
             }
+        }
+
+        // angle=<number> (degrees)
+        const angleParam = params.get('angle');
+        let angleDeg = 0;
+        if (angleParam !== null) {
+            angleDeg = parseFloat(angleParam);
+            if (isNaN(angleDeg)) angleDeg = 0;
+        }
+        // Normalize degrees to 0-359 and convert to radians
+        this.config.angle = (((angleDeg % 360) + 360) % 360) * (Math.PI / 180);
+
+        // If not revolving, set current angle to the one from URL
+        if (!this.config.revolve) {
+            this.angle = this.config.angle;
         }
 
         // Apply immediately if home is loaded
