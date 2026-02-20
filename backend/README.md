@@ -6,6 +6,10 @@ A powerful web-based 3D home visualization and design tool that lets you create 
 ![Docker](https://img.shields.io/badge/docker-ready-brightgreen.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-addon-blue.svg)
 
+## Screenshot
+
+![MimeSys 3D Home Visualization](../Mimesys.gif)
+
 ## Table of Contents
 
 - [Features](#features)

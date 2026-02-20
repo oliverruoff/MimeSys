@@ -2,6 +2,10 @@
 
 This Home Assistant integration automatically syncs your real smart home light and switch states with your MimeSys 3D Digital Twin, creating a live visualization of your home's lighting.
 
+## Screenshot
+
+![MimeSys 3D Home Visualization](../Mimesys.gif)
+
 ## Features
 
 - Real-time light and switch state synchronization (on/off, brightness, color)

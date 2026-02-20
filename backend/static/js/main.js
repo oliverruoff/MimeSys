@@ -38,6 +38,7 @@ class App {
                 this.homeRenderer.render(home);
                 this.controls.setInteractables(this.homeRenderer.interactables);
                 this.homeRenderer.setVisibleFloorLimit(0, true); // immediate = true for editor
+                this.homeRenderer.updateLightVisibility();
 
                 // Apply background color from home data
                 if (home.background_color) {
@@ -48,9 +49,9 @@ class App {
                     }
                 }
 
-                // Hide Gizmos by default
+                // Show light spheres by default in editor
                 if (this.homeRenderer.setGizmoVisibility) {
-                    this.homeRenderer.setGizmoVisibility(false);
+                    this.homeRenderer.setGizmoVisibility(true);
                 }
 
                 // Update UI to reflect loaded home

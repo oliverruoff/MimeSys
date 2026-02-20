@@ -636,5 +636,7 @@ export class Editor {
     refresh() {
         this.homeRenderer.render(this.homeRenderer.currentHome);
         this.homeRenderer.setVisibleFloorLimit(this.currentFloorIndex, true); // immediate = true for editor
+        this.homeRenderer.setGizmoVisibility(true);
+        this.homeRenderer.updateLightVisibility(); // Show lights that are ON
     }
 }

@@ -344,9 +344,12 @@ export class HomeRenderer {
         light.castShadow = false;
         light.userData = { type: 'pointLight', lightId: id };
         
-        // Start with lights hidden - they will be shown by animateFloorTransitions when appropriate
-        mesh.visible = false;
-        light.visible = false;
+        // Light bulb mesh should be visible in editor view mode
+        mesh.visible = true;
+        
+        // Show light if it's on (for editor view mode)
+        // In showcase mode, animateFloorTransitions controls visibility
+        light.visible = state.on;
         
         parent.add(light);
     }
@@ -400,11 +403,36 @@ export class HomeRenderer {
                         if (pointLight) {
                             pointLight.color.setHex(parseInt(state.color.replace('#', '0x')));
                             pointLight.intensity = state.on ? state.intensity * 5 : 0;
+                            // Show PointLight if light is on and parent floor is visible
+                            const floorVisible = obj.parent.visible && obj.parent.scale.y > 0.01;
+                            pointLight.visible = state.on && floorVisible;
                         }
                     }
 
                     // Update internal state
                     obj.userData.state = state;
+                }
+            });
+        });
+    }
+
+    updateLightVisibility() {
+        if (!this.currentHome || !this.homeGroup) return;
+
+        this.currentHome.floors.forEach(floor => {
+            if (!floor.lights) return;
+            
+            const floorGroup = this.homeGroup.children.find(fg => fg.userData.level === floor.level);
+            if (!floorGroup) return;
+
+            floor.lights.forEach(lightData => {
+                const pointLight = floorGroup.children.find(child =>
+                    child.userData && child.userData.type === 'pointLight' && child.userData.lightId === lightData.id
+                );
+
+                if (pointLight) {
+                    const floorVisible = floorGroup.visible && floorGroup.scale.y > 0.01;
+                    pointLight.visible = lightData.state.on && floorVisible;
                 }
             });
         });

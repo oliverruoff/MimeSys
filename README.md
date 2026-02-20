@@ -8,9 +8,9 @@ Create a stunning 3D visualization of your home that syncs in real-time with you
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-addon-blue.svg)
 ![HACS](https://img.shields.io/badge/HACS-compatible-green.svg)
 
-## Screenshot
+## How it will look
 
-![MimeSys 3D Home Visualization](Mimesys_Screenshot.png)
+![MimeSys 3D Home Visualization](Mimesys.gif)
 
 ---
 
@@ -970,7 +970,11 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.25 (Latest)
+### v1.2.26 (Latest)
+- ✅ Editor View Mode: Light spheres now always visible on current floor
+- ✅ Editor View Mode: Lights emit proper light when switched ON in the light menu
+
+### v1.2.25
 - ✅ Smart Walls: Fixed smart walls being applied to lower floors when a higher floor is shown - now only the highest currently visible floor gets smart wall effects
 
 ### v1.2.24

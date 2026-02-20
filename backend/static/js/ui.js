@@ -16,7 +16,7 @@ export class UI {
             this.editor.setEnabled(false);
             this.app.controls.enabled = true;
             if (this.app.homeRenderer.setGizmoVisibility)
-                this.app.homeRenderer.setGizmoVisibility(false);
+                this.app.homeRenderer.setGizmoVisibility(true);
         }, true);
 
         this.createSeparator();
