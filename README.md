@@ -972,7 +972,10 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.19 (Latest)
+### v1.2.20 (Latest)
+- ✅ Added logo.png to ensure integration icons are properly displayed in Home Assistant Devices & Services.
+
+### v1.2.19
 - ✅ Smart Walls: Added internal tracking fix to ensure walls on hidden floors are properly restored to full height and reset correctly
 
 ### v1.2.18
