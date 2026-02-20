@@ -972,10 +972,10 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.17 (Latest)
-- ✅ Fixed: integration icon now displays correctly in Home Assistant
+### v1.2.18 (Latest)
+- ✅ Fixed: using project's icon.png for integration
 
-### v1.2.16
+### v1.2.17
 - ✅ Smart walls: only highest visible floor gets smart wall treatment
 - ✅ Fixed: walls on non-visible floors now reset to full height when floor switches
 
