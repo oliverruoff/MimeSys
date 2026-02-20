@@ -401,28 +401,36 @@ export class HomeRenderer {
         const thresholdCenter = distToTarget - 0.5;
         const buffer = 0.25;
 
+        const resetObjectToFullHeight = (obj) => {
+            obj.userData.isLowered = false;
+            obj.userData.currentScale = 1.0;
+            obj.scale.y = 1.0;
+
+            if (obj.userData.type === 'wall') {
+                const originalHeight = obj.userData.obj.height || 2.5;
+                obj.position.y = originalHeight / 2;
+            } else if (obj.userData.type === 'cube') {
+                const relativeY = obj.userData.obj.position.y - obj.parent.position.y;
+                obj.position.y = relativeY;
+            }
+        };
+
         this.interactables.forEach(obj => {
             // Handle both walls and cubes
             if ((obj.userData.type === 'wall' || obj.userData.type === 'cube') && obj.userData.obj) {
-                if (obj.parent && obj.parent.visible === false) return;
+                if (!obj.parent) return;
 
-                // Skip objects not on the target floor - reset them to full height
+                // Floors that are currently hidden should never keep smart-wall transforms.
+                if (obj.parent.visible === false) {
+                    resetObjectToFullHeight(obj);
+                    return;
+                }
+
+                // Skip objects not on the target floor - always reset them to full height.
                 if (targetFloor !== undefined) {
                     const objFloorLevel = obj.parent.userData.level;
                     if (objFloorLevel !== targetFloor) {
-                        // Reset to full height if it was lowered
-                        if (obj.userData.isLowered) {
-                            obj.userData.isLowered = false;
-                            obj.userData.currentScale = 1.0; // Reset current scale too
-                            obj.scale.y = 1.0;
-                            if (obj.userData.type === 'wall') {
-                                const origHeight = obj.userData.obj.height || 2.5;
-                                obj.position.y = origHeight / 2;
-                            } else if (obj.userData.type === 'cube') {
-                                const relativeY = obj.userData.obj.position.y - obj.parent.position.y;
-                                obj.position.y = relativeY;
-                            }
-                        }
+                        resetObjectToFullHeight(obj);
                         return;
                     }
                 }

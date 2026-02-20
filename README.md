@@ -972,7 +972,10 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.22 (Latest)
+### v1.2.23 (Latest)
+- ✅ Smart Walls: Fixed so only walls on the highest currently shown floor can be affected by smart wall feature in /showcase mode
+
+### v1.2.22
 - ✅ Added `brand/` directory with icon and logo to integration to fix Home Assistant UI display issues.
 
 ### v1.2.21
