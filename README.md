@@ -972,7 +972,10 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.21 (Latest)
+### v1.2.22 (Latest)
+- ✅ Added `brand/` directory with icon and logo to integration to fix Home Assistant UI display issues.
+
+### v1.2.21
 - ✅ Fixed HACS compatibility: moved hacs.json to repository root
 - ✅ Removed invalid `filename` key from hacs.json
 
