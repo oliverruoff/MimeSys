@@ -972,7 +972,11 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.20 (Latest)
+### v1.2.21 (Latest)
+- ✅ Fixed HACS compatibility: moved hacs.json to repository root
+- ✅ Removed invalid `filename` key from hacs.json
+
+### v1.2.20
 - ✅ Added logo.png to ensure integration icons are properly displayed in Home Assistant Devices & Services.
 
 ### v1.2.19
