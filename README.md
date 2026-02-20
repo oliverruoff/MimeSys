@@ -970,7 +970,10 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.24 (Latest)
+### v1.2.25 (Latest)
+- ✅ Smart Walls: Fixed smart walls being applied to lower floors when a higher floor is shown - now only the highest currently visible floor gets smart wall effects
+
+### v1.2.24
 - ✅ Switched integration icon to Home Assistant MDI house icon (`mdi:home`) for reliable display.
 
 ### v1.2.23

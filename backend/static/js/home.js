@@ -259,6 +259,27 @@ export class HomeRenderer {
         this.gizmos.forEach(g => g.visible = visible);
     }
 
+    getHighestVisibleFloorLevel() {
+        if (!this.homeGroup) return undefined;
+
+        let highestLevel;
+        this.homeGroup.children.forEach(floorGroup => {
+            const level = floorGroup.userData.level;
+            if (level === undefined) return;
+
+            const transitionState = this.floorTransitions.get(level);
+            const scaleY = transitionState ? transitionState.currentScale : floorGroup.scale.y;
+            const isShown = floorGroup.visible && scaleY > 0.01;
+
+            if (!isShown) return;
+            if (highestLevel === undefined || level > highestLevel) {
+                highestLevel = level;
+            }
+        });
+
+        return highestLevel;
+    }
+
     createWall(wallData, parent, floorId) {
         const { p1, p2, height, thickness } = wallData;
         const dx = p2.x - p1.x;

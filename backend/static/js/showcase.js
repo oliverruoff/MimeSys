@@ -266,18 +266,22 @@ class ShowcaseApp {
         this.sceneManager.camera.lookAt(this.houseCenter.x, this.houseCenter.y, this.houseCenter.z);
 
 
-        // Smart Walls Update
-        if (this.homeRenderer.updateSmartWalls) {
-            this.homeRenderer.updateSmartWalls(
-                this.sceneManager.camera, 
-                new THREE.Vector3(this.houseCenter.x, this.houseCenter.y, this.houseCenter.z),
-                this.currentMaxFloor
-            );
-        }
-
         // Floor Transitions Update
         if (this.homeRenderer.animateFloorTransitions) {
             this.homeRenderer.animateFloorTransitions();
+        }
+
+        // Smart Walls Update (only highest currently shown floor)
+        if (this.homeRenderer.updateSmartWalls) {
+            const highestShownFloor = this.homeRenderer.getHighestVisibleFloorLevel
+                ? this.homeRenderer.getHighestVisibleFloorLevel()
+                : this.currentMaxFloor;
+
+            this.homeRenderer.updateSmartWalls(
+                this.sceneManager.camera,
+                new THREE.Vector3(this.houseCenter.x, this.houseCenter.y, this.houseCenter.z),
+                highestShownFloor
+            );
         }
 
         this.sceneManager.renderer.render(this.sceneManager.scene, this.sceneManager.camera);
