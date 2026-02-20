@@ -10,7 +10,7 @@ Create a stunning 3D visualization of your home that syncs in real-time with you
 
 ## How it will look
 
-![MimeSys 3D Home Visualization](Mimesys.gif)
+![MimeSys 3D Home Visualization](MimeSys.gif)
 
 ---
 
