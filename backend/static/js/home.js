@@ -413,6 +413,7 @@ export class HomeRenderer {
                         // Reset to full height if it was lowered
                         if (obj.userData.isLowered) {
                             obj.userData.isLowered = false;
+                            obj.userData.currentScale = 1.0; // Reset current scale too
                             obj.scale.y = 1.0;
                             if (obj.userData.type === 'wall') {
                                 const origHeight = obj.userData.obj.height || 2.5;

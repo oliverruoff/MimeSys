@@ -972,7 +972,10 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.18 (Latest)
+### v1.2.19 (Latest)
+- ✅ Smart Walls: Added internal tracking fix to ensure walls on hidden floors are properly restored to full height and reset correctly
+
+### v1.2.18
 - ✅ Fixed: using project's icon.png for integration
 
 ### v1.2.17
