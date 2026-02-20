@@ -972,7 +972,11 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.15 (Latest)
+### v1.2.16 (Latest)
+- ✅ Smart walls: only highest visible floor gets smart wall treatment
+- ✅ Fixed: walls on non-visible floors now reset to full height when floor switches
+
+### v1.2.15
 - ✅ Smart walls now only apply to the highest visible floor in showcase mode
 - ✅ Fixed: hidden floors no longer affected by smart walls
 

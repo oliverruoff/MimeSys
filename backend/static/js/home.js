@@ -406,10 +406,24 @@ export class HomeRenderer {
             if ((obj.userData.type === 'wall' || obj.userData.type === 'cube') && obj.userData.obj) {
                 if (obj.parent && obj.parent.visible === false) return;
 
-                // Skip objects not on the target floor
+                // Skip objects not on the target floor - reset them to full height
                 if (targetFloor !== undefined) {
                     const objFloorLevel = obj.parent.userData.level;
-                    if (objFloorLevel !== targetFloor) return;
+                    if (objFloorLevel !== targetFloor) {
+                        // Reset to full height if it was lowered
+                        if (obj.userData.isLowered) {
+                            obj.userData.isLowered = false;
+                            obj.scale.y = 1.0;
+                            if (obj.userData.type === 'wall') {
+                                const origHeight = obj.userData.obj.height || 2.5;
+                                obj.position.y = origHeight / 2;
+                            } else if (obj.userData.type === 'cube') {
+                                const relativeY = obj.userData.obj.position.y - obj.parent.position.y;
+                                obj.position.y = relativeY;
+                            }
+                        }
+                        return;
+                    }
                 }
 
                 const objPos = new THREE.Vector3();
