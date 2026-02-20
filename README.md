@@ -466,6 +466,294 @@ icon: mdi:home-floor-3
 
 Full API docs available at: `http://localhost:8000/docs`
 
+#### API Endpoints Overview
+
+The MimeSys API provides the following endpoints:
+
+##### Home Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/homes` | List all homes |
+| GET | `/api/homes/{home_id}` | Get a specific home by ID |
+| POST | `/api/homes` | Create a new home |
+| POST | `/api/homes/reset` | Reset to demo home |
+| PUT | `/api/homes/{home_id}` | Update a home |
+| PUT | `/api/homes/{home_id}/lights/{light_id}` | Update a light's state |
+
+##### Save Management
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/saves` | List all save files |
+| POST | `/api/saves/{filename}/load` | Load a save file |
+| POST | `/api/saves/upload` | Upload a save file (JSON) |
+| POST | `/api/saves/{filename}` | Save a home to a file |
+| GET | `/api/saves/export/all` | Export all saves as ZIP archive |
+| POST | `/api/saves/import` | Import saves from ZIP archive |
+
+##### Light Control
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/control/lights` | Control multiple lights (on/off, brightness, color) |
+| POST | `/api/ha/light/{light_id}/{action}` | Control a light (on/off) - for HA integration |
+
+##### Background
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/background/color` | Get current background color |
+| POST | `/api/background/color` | Set background color |
+
+---
+
+##### Get All Homes
+
+Returns a list of all homes in the system.
+
+```bash
+curl http://localhost:8000/api/homes
+```
+
+Response:
+```json
+[
+  {
+    "id": "abc123",
+    "name": "My Home",
+    "floors": [...],
+    "background_color": "#222222"
+  }
+]
+```
+
+##### Get Home by ID
+
+Returns a specific home by its ID.
+
+```bash
+curl http://localhost:8000/api/homes/abc123
+```
+
+##### Create Home
+
+Create a new home with the specified data.
+
+```bash
+curl -X POST http://localhost:8000/api/homes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "New Home",
+    "floors": []
+  }'
+```
+
+##### Reset Home
+
+Reset the system to the default demo home.
+
+```bash
+curl -X POST http://localhost:8000/api/homes/reset
+```
+
+##### Update Home
+
+Update an existing home with new data.
+
+```bash
+curl -X PUT http://localhost:8000/api/homes/abc123 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Home",
+    "floors": [...]
+  }'
+```
+
+##### Update Light State
+
+Update a specific light's state within a home.
+
+```bash
+curl -X PUT http://localhost:8000/api/homes/abc123/lights/light123 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "on": true,
+    "color": "#ffaa00",
+    "intensity": 2.5
+  }'
+```
+
+##### List Saves
+
+List all available save files.
+
+```bash
+curl http://localhost:8000/api/saves
+```
+
+Response:
+```json
+["my-home.json", "backup.json"]
+```
+
+##### Load Save
+
+Load a home from a save file.
+
+```bash
+curl -X POST http://localhost:8000/api/saves/my-home.json/load
+```
+
+##### Upload Save
+
+Upload a new save file (JSON only, max 10MB).
+
+```bash
+curl -X POST http://localhost:8000/api/saves/upload \
+  -F "file=@my-save.json"
+```
+
+##### Save As
+
+Save the current home to a file.
+
+```bash
+curl -X POST http://localhost:8000/api/saves/my-save \
+  -H "Content-Type: application/json" \
+  -d '{...home data...}'
+```
+
+##### Export All Saves
+
+Export all save files as a ZIP archive.
+
+```bash
+curl http://localhost:8000/api/saves/export/all -o saves.zip
+```
+
+##### Import Saves
+
+Import save files from a ZIP archive.
+
+```bash
+curl -X POST http://localhost:8000/api/saves/import \
+  -F "file=@saves.zip"
+```
+
+##### Control Lights
+
+Control multiple lights at once with on/off state, brightness, and color.
+
+```bash
+curl -X POST http://localhost:8000/api/control/lights \
+  -H "Content-Type: application/json" \
+  -d '[
+    {
+      "name": "light.living_room",
+      "on": true,
+      "brightness": 80,
+      "color": [255, 200, 100]
+    }
+  ]'
+```
+
+Parameters:
+- `name` (string): Light name (should match entity ID for HA sync)
+- `on` (boolean): Turn light on or off
+- `brightness` (number, 0-100): Brightness level
+- `color` (array, [R, G, B]): RGB color values
+
+Response:
+```json
+{"status": "success", "updated_lights": 1}
+```
+
+##### HA Light Control
+
+Simple on/off control for Home Assistant integration.
+
+```bash
+# Turn on
+curl -X POST http://localhost:8000/api/ha/light/light123/on
+
+# Turn off
+curl -X POST http://localhost:8000/api/ha/light/light123/off
+```
+
+##### Get Background Color
+
+Get the current 3D scene background color.
+
+```bash
+curl http://localhost:8000/api/background/color
+```
+
+Response:
+```json
+{"background_color": "#222222"}
+```
+
+##### Set Background Color
+
+Set the 3D scene background color.
+
+```bash
+curl -X POST http://localhost:8000/api/background/color \
+  -H "Content-Type: application/json" \
+  -d '{"color": "#111111"}'
+```
+
+---
+
+#### Showcase Mode URL Options
+
+The showcase mode (`/showcase`) supports query parameters to customize the view:
+
+| Parameter | Values | Default | Description |
+|-----------|--------|---------|-------------|
+| `revolve` | `true`, `false` | `true` | Enable/disable automatic camera rotation |
+| `floor` | `auto`, `0`, `1`, `2`, ... | `auto` | Which floor to display (`auto` cycles through floors) |
+| `angle` | `0-359` | `0` | Starting camera angle in degrees |
+
+##### Examples
+
+```bash
+# Default: auto-rotating, cycling through floors
+http://localhost:8000/showcase
+
+# Static view of floor 0 (no rotation)
+http://localhost:8000/showcase?revolve=false&floor=0
+
+# Static view of floor 1
+http://localhost:8000/showcase?revolve=false&floor=1
+
+# Rotating view of floor 2
+http://localhost:8000/showcase?floor=2
+
+# Rotating view starting from 45 degrees angle
+http://localhost:8000/showcase?angle=45
+
+# Static view of floor 0 from 90 degrees
+http://localhost:8000/showcase?revolve=false&floor=0&angle=90
+```
+
+##### Using in Home Assistant Dashboard
+
+```yaml
+# Full showcase with auto-rotation (recommended for displays)
+type: iframe
+url: http://localhost:8000/showcase
+aspect_ratio: 16:9
+
+# Static view of ground floor (for wall-mounted tablets)
+type: iframe
+url: http://localhost:8000/showcase?revolve=false&floor=0
+aspect_ratio: 16:9
+```
+
+**Note**: The showcase mode polls the API every 1 second to update light states in real-time.
+
 #### Control Lights Programmatically
 
 ```bash
