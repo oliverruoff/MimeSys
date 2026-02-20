@@ -270,7 +270,8 @@ class ShowcaseApp {
         if (this.homeRenderer.updateSmartWalls) {
             this.homeRenderer.updateSmartWalls(
                 this.sceneManager.camera, 
-                new THREE.Vector3(this.houseCenter.x, this.houseCenter.y, this.houseCenter.z)
+                new THREE.Vector3(this.houseCenter.x, this.houseCenter.y, this.houseCenter.z),
+                this.currentMaxFloor
             );
         }
 

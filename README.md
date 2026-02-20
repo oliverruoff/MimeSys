@@ -972,7 +972,11 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.1.3 (Latest)
+### v1.2.15 (Latest)
+- ✅ Smart walls now only apply to the highest visible floor in showcase mode
+- ✅ Fixed: hidden floors no longer affected by smart walls
+
+### v1.2.14
 - ✅ Fixed options flow TypeError
 - ✅ Added initial state sync on entity addition
 - ✅ Enhanced logging with visual indicators

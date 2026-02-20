@@ -389,7 +389,7 @@ export class HomeRenderer {
         });
     }
 
-    updateSmartWalls(camera, target) {
+    updateSmartWalls(camera, target, targetFloor) {
         if (!this.interactables) return;
 
         const viewDir = new THREE.Vector3().subVectors(target, camera.position).normalize();
@@ -405,6 +405,12 @@ export class HomeRenderer {
             // Handle both walls and cubes
             if ((obj.userData.type === 'wall' || obj.userData.type === 'cube') && obj.userData.obj) {
                 if (obj.parent && obj.parent.visible === false) return;
+
+                // Skip objects not on the target floor
+                if (targetFloor !== undefined) {
+                    const objFloorLevel = obj.parent.userData.level;
+                    if (objFloorLevel !== targetFloor) return;
+                }
 
                 const objPos = new THREE.Vector3();
                 obj.getWorldPosition(objPos);
