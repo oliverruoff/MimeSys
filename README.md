@@ -1,6 +1,4 @@
-<div align="center">
-  <img src="backend/static/images/favicon.png" alt="MimeSys Logo" width="200"/>
-</div>
+![MimeSys Logo](icon.png)
 
 # MimeSys - 3D Home Digital Twin for Home Assistant
 
@@ -972,7 +970,10 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.23 (Latest)
+### v1.2.24 (Latest)
+- ✅ Switched integration icon to Home Assistant MDI house icon (`mdi:home`) for reliable display.
+
+### v1.2.23
 - ✅ Smart Walls: Fixed so only walls on the highest currently shown floor can be affected by smart wall feature in /showcase mode
 
 ### v1.2.22
