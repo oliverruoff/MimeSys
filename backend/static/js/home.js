@@ -389,8 +389,15 @@ export class HomeRenderer {
         });
     }
 
-    updateSmartWalls(camera, target) {
+    updateSmartWalls(camera, target, options = {}) {
         if (!this.interactables) return;
+
+        const restrictedFloorLevel = Number.isFinite(options.floorLevel)
+            ? options.floorLevel
+            : null;
+        const allowedObjectTypes = Array.isArray(options.objectTypes) && options.objectTypes.length > 0
+            ? new Set(options.objectTypes)
+            : new Set(['wall', 'cube']);
 
         const viewDir = new THREE.Vector3().subVectors(target, camera.position).normalize();
         const distToTarget = camera.position.distanceTo(target);
@@ -402,9 +409,36 @@ export class HomeRenderer {
         const buffer = 0.25;
 
         this.interactables.forEach(obj => {
-            // Handle both walls and cubes
-            if ((obj.userData.type === 'wall' || obj.userData.type === 'cube') && obj.userData.obj) {
+            if (allowedObjectTypes.has(obj.userData.type) && obj.userData.obj) {
                 if (obj.parent && obj.parent.visible === false) return;
+
+                if (restrictedFloorLevel !== null) {
+                    const objectFloorLevel = obj.parent && obj.parent.userData
+                        ? obj.parent.userData.level
+                        : undefined;
+
+                    if (objectFloorLevel !== restrictedFloorLevel) {
+                        obj.userData.isLowered = false;
+                        if (obj.userData.currentScale === undefined) obj.userData.currentScale = 1.0;
+                        obj.userData.currentScale += (1.0 - obj.userData.currentScale) * 0.1;
+
+                        if (Math.abs(1.0 - obj.userData.currentScale) < 0.01) {
+                            obj.userData.currentScale = 1.0;
+                        }
+
+                        obj.scale.y = obj.userData.currentScale;
+
+                        if (obj.userData.type === 'wall') {
+                            const originalHeight = obj.userData.obj.height || 2.5;
+                            obj.position.y = (originalHeight * obj.userData.currentScale) / 2;
+                        } else if (obj.userData.type === 'cube') {
+                            const relativeY = obj.userData.obj.position.y - obj.parent.position.y;
+                            obj.position.y = relativeY * obj.userData.currentScale;
+                        }
+
+                        return;
+                    }
+                }
 
                 const objPos = new THREE.Vector3();
                 obj.getWorldPosition(objPos);

@@ -17,7 +17,8 @@ class ShowcaseApp {
         this.config = {
             revolve: true,
             floor: 'auto',
-            angle: 0
+            angle: 0,
+            smartWalls: true
         };
         this.lastHref = window.location.href;
         this.updateConfigFromURL();
@@ -61,6 +62,14 @@ class ShowcaseApp {
         }
         // Normalize degrees to 0-359 and convert to radians
         this.config.angle = (((angleDeg % 360) + 360) % 360) * (Math.PI / 180);
+
+        // smartWalls=true|false (case-insensitive)
+        const smartWallsParam = params.get('smartWalls') ?? params.get('smartwalls');
+        if (smartWallsParam !== null) {
+            this.config.smartWalls = smartWallsParam.toLowerCase() !== 'false';
+        } else {
+            this.config.smartWalls = true;
+        }
 
         // If not revolving, set current angle to the one from URL
         if (!this.config.revolve) {
@@ -267,10 +276,15 @@ class ShowcaseApp {
 
 
         // Smart Walls Update
-        if (this.homeRenderer.updateSmartWalls) {
+        if (this.config.smartWalls && this.homeRenderer.updateSmartWalls) {
+            const highestVisibleFloorLevel = this.getHighestVisibleFloorLevel();
             this.homeRenderer.updateSmartWalls(
                 this.sceneManager.camera, 
-                new THREE.Vector3(this.houseCenter.x, this.houseCenter.y, this.houseCenter.z)
+                new THREE.Vector3(this.houseCenter.x, this.houseCenter.y, this.houseCenter.z),
+                {
+                    floorLevel: highestVisibleFloorLevel,
+                    objectTypes: ['wall']
+                }
             );
         }
 
@@ -280,6 +294,27 @@ class ShowcaseApp {
         }
 
         this.sceneManager.renderer.render(this.sceneManager.scene, this.sceneManager.camera);
+    }
+
+    getHighestVisibleFloorLevel() {
+        if (!this.homeRenderer || !this.homeRenderer.homeGroup) return null;
+
+        let highestVisibleFloorLevel = null;
+        this.homeRenderer.homeGroup.children.forEach(floorGroup => {
+            const level = floorGroup.userData ? floorGroup.userData.level : undefined;
+            if (level === undefined || floorGroup.visible === false) return;
+
+            const transitionState = this.homeRenderer.floorTransitions
+                ? this.homeRenderer.floorTransitions.get(level)
+                : null;
+            if (transitionState && transitionState.targetScale === 0) return;
+
+            if (highestVisibleFloorLevel === null || level > highestVisibleFloorLevel) {
+                highestVisibleFloorLevel = level;
+            }
+        });
+
+        return highestVisibleFloorLevel;
     }
 }
 
