@@ -292,6 +292,16 @@ export class HomeRenderer {
         return highestLevel;
     }
 
+    getNormalizedLightIntensity(state) {
+        if (!state) return 1.0;
+        const parsed = Number(state.intensity);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            state.intensity = 1.0;
+            return 1.0;
+        }
+        return parsed;
+    }
+
     createWall(wallData, parent, floorId) {
         const { p1, p2, height, thickness } = wallData;
         const dx = p2.x - p1.x;
@@ -349,7 +359,8 @@ export class HomeRenderer {
 
         // Always create a PointLight, but set intensity to 0 when off
         // This ensures the light can be turned on via API updates
-        const light = new THREE.PointLight(state.color, state.on ? state.intensity * 5 : 0, 15);
+        const normalizedIntensity = this.getNormalizedLightIntensity(state);
+        const light = new THREE.PointLight(state.color, state.on ? normalizedIntensity * 5 : 0, 15);
         light.position.set(position.x, relativeY, position.z);
         light.castShadow = false;
         light.userData = { type: 'pointLight', lightId: id };
@@ -444,8 +455,9 @@ export class HomeRenderer {
                         );
                         
                         if (pointLight) {
+                            const normalizedIntensity = this.getNormalizedLightIntensity(state);
                             pointLight.color.setHex(parseInt(state.color.replace('#', '0x')));
-                            pointLight.intensity = state.on ? state.intensity * 5 : 0;
+                            pointLight.intensity = state.on ? normalizedIntensity * 5 : 0;
                             // Show PointLight if light is on and parent floor is visible
                             const floorVisible = obj.parent.visible && obj.parent.scale.y > 0.01;
                             pointLight.visible = state.on && floorVisible;
@@ -480,8 +492,9 @@ export class HomeRenderer {
             );
 
             if (pointLight) {
+                const normalizedIntensity = this.getNormalizedLightIntensity(state);
                 pointLight.color.setHex(parseInt(state.color.replace('#', '0x')));
-                pointLight.intensity = state.on ? state.intensity * 5 : 0;
+                pointLight.intensity = state.on ? normalizedIntensity * 5 : 0;
                 const floorVisible = obj.parent.visible && obj.parent.scale.y > 0.01;
                 pointLight.visible = state.on && floorVisible;
             }

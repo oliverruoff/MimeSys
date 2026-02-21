@@ -653,6 +653,12 @@ export class UI {
         toggleInput.checked = light.state.on;
         toggleInput.onchange = (e) => {
             light.state.on = e.target.checked;
+            if (light.state.on) {
+                const parsedIntensity = Number(light.state.intensity);
+                if (!Number.isFinite(parsedIntensity) || parsedIntensity < 0) {
+                    light.state.intensity = 1.0;
+                }
+            }
             this.editor.refresh();
         };
         const toggleSpan = document.createElement('span');
@@ -732,7 +738,10 @@ export class UI {
         propsSection.appendChild(propsHeader);
 
         // Brightness slider
-        this.createPropSlider(propsSection, 'Brightness', light.state.intensity || 1.0, 0, 5, 0.1, (val) => {
+        const initialIntensity = Number.isFinite(Number(light.state.intensity))
+            ? Math.max(0, Number(light.state.intensity))
+            : 1.0;
+        this.createPropSlider(propsSection, 'Brightness', initialIntensity, 0, 5, 0.1, (val) => {
             light.state.intensity = val;
         });
 
