@@ -6,7 +6,11 @@ class ShowcaseApp {
     constructor() {
         this.container = document.getElementById('canvas-container');
         this.sceneManager = new SceneManager(this.container, false); // No Grid
-        this.homeRenderer = new HomeRenderer(this.sceneManager.scene);
+        this.homeRenderer = new HomeRenderer(this.sceneManager.scene, {
+            enableLightShadows: true,
+            maxShadowLights: 8,
+            lightShadowMapSize: 1024
+        });
 
         // Setup simple orbiting camera
         this.angle = 0;
