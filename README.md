@@ -970,7 +970,13 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.27 (Latest)
+### v1.2.28 (Latest)
+- ✅ Showcase: point lights now cast real occlusion shadows from walls/cubes/floors (light no longer leaks through geometry)
+- ✅ Showcase: only lights on the highest currently shown floor are rendered, aligned with smart-wall floor targeting
+- ✅ Editor: toggling a light ON now immediately emits light when brightness is greater than 0 (no slider nudge needed)
+- ✅ Smart Walls: visual wall/cube shrinking no longer reduces their shadow silhouette; shadows keep full object height
+
+### v1.2.27
 - ✅ Showcase sync switched to SSE push updates with automatic reconnect and heartbeat
 - ✅ Added low-frequency fallback polling only when stream is disconnected
 - ✅ HA integration now retries failed sync calls and performs periodic full resync to self-heal drift
