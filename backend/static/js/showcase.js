@@ -6,7 +6,11 @@ class ShowcaseApp {
     constructor() {
         this.container = document.getElementById('canvas-container');
         this.sceneManager = new SceneManager(this.container, false); // No Grid
-        this.homeRenderer = new HomeRenderer(this.sceneManager.scene);
+        this.homeRenderer = new HomeRenderer(this.sceneManager.scene, {
+            enableLightShadows: true,
+            maxShadowLights: 8,
+            lightShadowMapSize: 1024
+        });
 
         // Setup simple orbiting camera
         this.angle = 0;
@@ -22,8 +26,18 @@ class ShowcaseApp {
         this.lastHref = window.location.href;
         this.updateConfigFromURL();
 
+        this.eventSource = null;
+        this.sseConnected = false;
+        this.reconnectTimer = null;
+        this.reconnectDelayMs = 1000;
+        this.maxReconnectDelayMs = 30000;
+        this.lastAppliedVersion = 0;
+        this.fallbackPollIntervalMs = 60000;
+        this.fallbackPollTimer = null;
+
         // Listen for URL changes
         window.addEventListener('popstate', () => this.updateConfigFromURL());
+        window.addEventListener('beforeunload', () => this.cleanupSync());
 
         this.init();
     }
@@ -122,8 +136,8 @@ class ShowcaseApp {
                     this.homeRenderer.setGizmoVisibility(false);
                 }
 
-                // Start Polling for Light Updates
-                this.pollUpdates();
+                // Start stream-based sync with low-frequency fallback polling
+                this.startSync();
 
                 // Listen for window resize
                 window.addEventListener('resize', () => this.adjustCameraForViewport());
@@ -192,32 +206,173 @@ class ShowcaseApp {
         this.sceneManager.onResize();
     }
 
-    async pollUpdates() {
-        setInterval(async () => {
-            if (!this.home) return;
+    startSync() {
+        this.startEventStream();
+        this.startFallbackPolling();
+    }
+
+    cleanupSync() {
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+        }
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
+        if (this.fallbackPollTimer) {
+            clearInterval(this.fallbackPollTimer);
+            this.fallbackPollTimer = null;
+        }
+    }
+
+    startEventStream() {
+        if (!this.home || !this.home.id) return;
+
+        if (this.eventSource) {
+            this.eventSource.close();
+        }
+
+        const streamUrl = `/api/homes/${this.home.id}/stream?since=${this.lastAppliedVersion}`;
+        const eventSource = new EventSource(streamUrl);
+        this.eventSource = eventSource;
+
+        eventSource.addEventListener('open', () => {
+            this.sseConnected = true;
+            this.reconnectDelayMs = 1000;
+        });
+
+        eventSource.addEventListener('hello', (event) => {
             try {
-                // Fetch latest home state
-                // Note: In a production app, we might want a lightweight 'status' endpoint
-                // but for now re-fetching the home JSON is fine for this scale.
-                const updatedHome = await fetch(`/api/homes/${this.home.id}`).then(r => r.json());
-
-                if (updatedHome && updatedHome.id) {
-                    // Update lights
-                    this.homeRenderer.updateLights(updatedHome);
-
-                    // Check and update background color if changed
-                    if (updatedHome.background_color && updatedHome.background_color !== this.currentBackgroundColor) {
-                        this.sceneManager.setBackgroundColor(updatedHome.background_color);
-                        this.currentBackgroundColor = updatedHome.background_color;
-                    }
-
-                    // Update local ref
-                    this.home = updatedHome;
+                const data = JSON.parse(event.data);
+                if (typeof data.version === 'number') {
+                    this.lastAppliedVersion = Math.max(this.lastAppliedVersion, data.version);
                 }
             } catch (err) {
-                console.warn("Poll failed", err);
+                console.warn('Failed to parse hello event', err);
             }
-        }, 1000); // Poll every 1 second
+        });
+
+        eventSource.addEventListener('lights_changed', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                this.applyLightDelta(data);
+            } catch (err) {
+                console.warn('Failed to parse lights_changed event', err);
+            }
+        });
+
+        eventSource.addEventListener('background_changed', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                this.applyBackgroundDelta(data);
+            } catch (err) {
+                console.warn('Failed to parse background_changed event', err);
+            }
+        });
+
+        eventSource.addEventListener('resync_required', async (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (typeof data.current_version === 'number') {
+                    this.lastAppliedVersion = Math.max(this.lastAppliedVersion, data.current_version);
+                }
+            } catch (err) {
+                console.warn('Failed to parse resync_required event', err);
+            }
+            await this.performFullResync();
+        });
+
+        eventSource.addEventListener('ping', () => {
+            // Heartbeat; no-op
+        });
+
+        eventSource.onerror = () => {
+            this.sseConnected = false;
+            if (this.eventSource) {
+                this.eventSource.close();
+                this.eventSource = null;
+            }
+
+            if (!this.reconnectTimer) {
+                const delay = this.reconnectDelayMs;
+                this.reconnectTimer = setTimeout(() => {
+                    this.reconnectTimer = null;
+                    this.startEventStream();
+                }, delay);
+                this.reconnectDelayMs = Math.min(this.reconnectDelayMs * 2, this.maxReconnectDelayMs);
+            }
+        };
+    }
+
+    startFallbackPolling() {
+        if (this.fallbackPollTimer) return;
+        this.fallbackPollTimer = setInterval(async () => {
+            if (!this.home || !this.home.id) return;
+            if (this.sseConnected) return;
+            await this.performFullResync();
+        }, this.fallbackPollIntervalMs);
+    }
+
+    async performFullResync() {
+        if (!this.home || !this.home.id) return;
+
+        try {
+            const updatedHome = await fetch(`/api/homes/${this.home.id}`).then(r => r.json());
+            if (!updatedHome || !updatedHome.id) return;
+
+            this.homeRenderer.updateLights(updatedHome);
+
+            if (updatedHome.background_color && updatedHome.background_color !== this.currentBackgroundColor) {
+                this.sceneManager.setBackgroundColor(updatedHome.background_color);
+                this.currentBackgroundColor = updatedHome.background_color;
+            }
+
+            this.home = updatedHome;
+        } catch (err) {
+            console.warn('Full resync failed', err);
+        }
+    }
+
+    applyLightDelta(eventData) {
+        if (!eventData || !Array.isArray(eventData.lights)) return;
+
+        eventData.lights.forEach(lightData => {
+            if (!lightData || !lightData.id || !lightData.state) return;
+            this.homeRenderer.updateLightById(lightData.id, lightData.state);
+            this.updateLocalLightState(lightData.id, lightData.state);
+        });
+
+        if (typeof eventData.version === 'number') {
+            this.lastAppliedVersion = Math.max(this.lastAppliedVersion, eventData.version);
+        }
+    }
+
+    applyBackgroundDelta(eventData) {
+        if (!eventData) return;
+        if (eventData.background_color && eventData.background_color !== this.currentBackgroundColor) {
+            this.sceneManager.setBackgroundColor(eventData.background_color);
+            this.currentBackgroundColor = eventData.background_color;
+            if (this.home) {
+                this.home.background_color = eventData.background_color;
+            }
+        }
+
+        if (typeof eventData.version === 'number') {
+            this.lastAppliedVersion = Math.max(this.lastAppliedVersion, eventData.version);
+        }
+    }
+
+    updateLocalLightState(lightId, state) {
+        if (!this.home || !this.home.floors) return;
+        for (const floor of this.home.floors) {
+            if (!floor.lights) continue;
+            const target = floor.lights.find(light => light.id === lightId);
+            if (target) {
+                target.state = state;
+                return;
+            }
+        }
     }
 
     animate() {
@@ -282,6 +437,10 @@ class ShowcaseApp {
                 new THREE.Vector3(this.houseCenter.x, this.houseCenter.y, this.houseCenter.z),
                 highestShownFloor
             );
+
+            if (this.homeRenderer.setVisibleLightFloor) {
+                this.homeRenderer.setVisibleLightFloor(highestShownFloor);
+            }
         }
 
         this.sceneManager.renderer.render(this.sceneManager.scene, this.sceneManager.camera);

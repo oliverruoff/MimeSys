@@ -1,14 +1,18 @@
 import * as THREE from 'three';
 
 export class HomeRenderer {
-    constructor(scene) {
+    constructor(scene, options = {}) {
         this.scene = scene;
         this.homeGroup = new THREE.Group();
         this.scene.add(this.homeGroup);
         this.interactables = [];
         this.gizmos = [];
+        this.pointLights = [];
         // Floor transition state tracking
         this.floorTransitions = new Map(); // Maps floor level to { targetScale: 0-1, currentScale: 0-1 }
+        this.enableLightShadows = options.enableLightShadows === true;
+        this.maxShadowLights = options.maxShadowLights || 6;
+        this.lightShadowMapSize = options.lightShadowMapSize || 512;
     }
 
     render(home) {
@@ -19,6 +23,7 @@ export class HomeRenderer {
         }
         this.interactables = [];
         this.gizmos = [];
+        this.pointLights = [];
 
         // For Centering
         let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -63,6 +68,7 @@ export class HomeRenderer {
                 // Extrusion is Z axis (which becomes -Y after rotation).
                 mesh.rotation.x = Math.PI / 2;
                 mesh.position.y = 0.01; // Slight offset to cover lower walls
+                mesh.castShadow = true;
                 mesh.receiveShadow = true;
                 floorGroup.add(mesh);
             }
@@ -86,6 +92,8 @@ export class HomeRenderer {
 
             this.homeGroup.add(floorGroup);
         });
+
+        this.rebalanceShadowCastingLights();
 
         // Center Base Plate
         if (hasPoints) {
@@ -180,6 +188,8 @@ export class HomeRenderer {
                 }
             }
         });
+
+        this.rebalanceShadowCastingLights();
     }
 
     animateFloorTransitions() {
@@ -253,6 +263,8 @@ export class HomeRenderer {
                 floorGroup.position.y = baseY * targetScale;
             }
         });
+
+        this.rebalanceShadowCastingLights();
     }
 
     setGizmoVisibility(visible) {
@@ -280,6 +292,34 @@ export class HomeRenderer {
         return highestLevel;
     }
 
+    getNormalizedLightIntensity(state) {
+        if (!state) return 1.0;
+        const parsed = Number(state.intensity);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            state.intensity = 1.0;
+            return 1.0;
+        }
+        return parsed;
+    }
+
+    createShadowProxy(geometry, parent, position, rotationY = 0) {
+        const proxyMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false
+        });
+        proxyMaterial.colorWrite = false;
+
+        const proxy = new THREE.Mesh(geometry, proxyMaterial);
+        proxy.position.copy(position);
+        proxy.rotation.y = rotationY;
+        proxy.castShadow = true;
+        proxy.receiveShadow = false;
+        parent.add(proxy);
+        return proxy;
+    }
+
     createWall(wallData, parent, floorId) {
         const { p1, p2, height, thickness } = wallData;
         const dx = p2.x - p1.x;
@@ -296,8 +336,15 @@ export class HomeRenderer {
 
         mesh.position.set(cx, height / 2, cz);
         mesh.rotation.y = -angle;
-        mesh.castShadow = true;
+        mesh.castShadow = false;
         mesh.receiveShadow = true;
+
+        this.createShadowProxy(
+            geo,
+            parent,
+            new THREE.Vector3(cx, height / 2, cz),
+            -angle
+        );
 
         mesh.userData = { type: 'wall', floorId, obj: wallData };
         this.interactables.push(mesh);
@@ -337,10 +384,9 @@ export class HomeRenderer {
 
         // Always create a PointLight, but set intensity to 0 when off
         // This ensures the light can be turned on via API updates
-        const light = new THREE.PointLight(state.color, state.on ? state.intensity * 5 : 0, 15);
+        const normalizedIntensity = this.getNormalizedLightIntensity(state);
+        const light = new THREE.PointLight(state.color, state.on ? normalizedIntensity * 5 : 0, 15);
         light.position.set(position.x, relativeY, position.z);
-        // Disable shadows on PointLights to avoid WebGL limit (max ~8-16 shadow-casting lights)
-        // Sun/directional lights provide global shadows instead
         light.castShadow = false;
         light.userData = { type: 'pointLight', lightId: id };
         
@@ -350,8 +396,41 @@ export class HomeRenderer {
         // Show light if it's on (for editor view mode)
         // In showcase mode, animateFloorTransitions controls visibility
         light.visible = state.on;
+
+        this.pointLights.push(light);
         
         parent.add(light);
+    }
+
+    configurePointLightShadow(light) {
+        light.shadow.mapSize.width = this.lightShadowMapSize;
+        light.shadow.mapSize.height = this.lightShadowMapSize;
+        light.shadow.bias = -0.001;
+        light.shadow.normalBias = 0.02;
+        light.shadow.camera.near = 0.1;
+        light.shadow.camera.far = Math.max(light.distance || 0, 40);
+        light.shadow.radius = 4;
+    }
+
+    rebalanceShadowCastingLights() {
+        if (!this.enableLightShadows || !this.pointLights || this.pointLights.length === 0) return;
+
+        const activeLights = this.pointLights
+            .filter(light => light.visible && light.intensity > 0.001)
+            .sort((a, b) => b.intensity - a.intensity);
+
+        const selectedLights = new Set(activeLights.slice(0, this.maxShadowLights));
+
+        this.pointLights.forEach(light => {
+            const shouldCastShadow = selectedLights.has(light);
+            if (light.castShadow !== shouldCastShadow) {
+                light.castShadow = shouldCastShadow;
+                if (shouldCastShadow) {
+                    this.configurePointLightShadow(light);
+                    light.shadow.needsUpdate = true;
+                }
+            }
+        });
     }
 
     createCube(cubeData, parent, floorId) {
@@ -365,8 +444,15 @@ export class HomeRenderer {
         mesh.position.set(position.x, relativeY, position.z);
         mesh.rotation.y = rotation;
 
-        mesh.castShadow = true;
+        mesh.castShadow = false;
         mesh.receiveShadow = true;
+
+        this.createShadowProxy(
+            geo,
+            parent,
+            new THREE.Vector3(position.x, relativeY, position.z),
+            rotation
+        );
 
         mesh.userData = { type: 'cube', id, floorId, obj: cubeData };
 
@@ -401,8 +487,9 @@ export class HomeRenderer {
                         );
                         
                         if (pointLight) {
+                            const normalizedIntensity = this.getNormalizedLightIntensity(state);
                             pointLight.color.setHex(parseInt(state.color.replace('#', '0x')));
-                            pointLight.intensity = state.on ? state.intensity * 5 : 0;
+                            pointLight.intensity = state.on ? normalizedIntensity * 5 : 0;
                             // Show PointLight if light is on and parent floor is visible
                             const floorVisible = obj.parent.visible && obj.parent.scale.y > 0.01;
                             pointLight.visible = state.on && floorVisible;
@@ -414,6 +501,39 @@ export class HomeRenderer {
                 }
             });
         });
+
+        this.rebalanceShadowCastingLights();
+    }
+
+    updateLightById(lightId, state) {
+        if (!lightId || !state) return;
+
+        const obj = this.interactables.find(o =>
+            o.userData.type === 'light' && o.userData.id === lightId
+        );
+
+        if (!obj) return;
+
+        if (obj.material) {
+            obj.material.color.setHex(state.on ? parseInt(state.color.replace('#', '0x')) : 0x4a4a4a);
+        }
+
+        if (obj.parent) {
+            const pointLight = obj.parent.children.find(child =>
+                child.userData && child.userData.type === 'pointLight' && child.userData.lightId === lightId
+            );
+
+            if (pointLight) {
+                const normalizedIntensity = this.getNormalizedLightIntensity(state);
+                pointLight.color.setHex(parseInt(state.color.replace('#', '0x')));
+                pointLight.intensity = state.on ? normalizedIntensity * 5 : 0;
+                const floorVisible = obj.parent.visible && obj.parent.scale.y > 0.01;
+                pointLight.visible = state.on && floorVisible;
+            }
+        }
+
+        obj.userData.state = state;
+        this.rebalanceShadowCastingLights();
     }
 
     updateLightVisibility() {
@@ -436,6 +556,31 @@ export class HomeRenderer {
                 }
             });
         });
+
+        this.rebalanceShadowCastingLights();
+    }
+
+    setVisibleLightFloor(targetFloorLevel) {
+        if (!this.homeGroup) return;
+
+        this.homeGroup.children.forEach(floorGroup => {
+            const floorLevel = floorGroup.userData.level;
+            const floorVisible = floorGroup.visible && floorGroup.scale.y > 0.01;
+            const isTargetFloor = floorLevel === targetFloorLevel;
+
+            floorGroup.children.forEach(child => {
+                if (!child.userData || child.userData.type !== 'pointLight') return;
+
+                if (!floorVisible || !isTargetFloor) {
+                    child.visible = false;
+                    return;
+                }
+
+                child.visible = child.intensity > 0;
+            });
+        });
+
+        this.rebalanceShadowCastingLights();
     }
 
     updateSmartWalls(camera, target, targetFloor) {

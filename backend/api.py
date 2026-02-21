@@ -1,10 +1,14 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from collections import defaultdict, deque
+from fastapi import APIRouter, HTTPException, UploadFile, File, Request, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from models import Home, Floor, Wall, Light, LightState
 from pydantic import BaseModel
+import asyncio
 import db
 import base64
 import io
+import json
+import time
 import zipfile
 import os
 
@@ -19,6 +23,84 @@ class BackgroundColorCommand(BaseModel):
 
 router = APIRouter()
 
+EVENT_LOG_MAXLEN = 1000
+SSE_HEARTBEAT_SECONDS = 25
+
+_home_versions: dict[str, int] = defaultdict(int)
+_home_event_logs: dict[str, deque] = defaultdict(lambda: deque(maxlen=EVENT_LOG_MAXLEN))
+_home_subscribers: dict[str, set[asyncio.Queue]] = defaultdict(set)
+
+
+def _serialize_light(light: Light) -> dict:
+    return {
+        "id": light.id,
+        "name": light.name,
+        "state": light.state.dict(),
+    }
+
+
+def _format_sse_event(event_type: str, data: dict, event_id: int | None = None) -> str:
+    lines = []
+    if event_id is not None:
+        lines.append(f"id: {event_id}")
+    lines.append(f"event: {event_type}")
+    lines.append(f"data: {json.dumps(data)}")
+    return "\n".join(lines) + "\n\n"
+
+
+def _publish_home_event(home_id: str, event_type: str, payload: dict) -> dict:
+    _home_versions[home_id] += 1
+    version = _home_versions[home_id]
+    event = {
+        "type": event_type,
+        "home_id": home_id,
+        "version": version,
+        "ts": int(time.time()),
+        **payload,
+    }
+    _home_event_logs[home_id].append(event)
+
+    for queue in list(_home_subscribers[home_id]):
+        if queue.full():
+            try:
+                queue.get_nowait()
+            except asyncio.QueueEmpty:
+                pass
+        try:
+            queue.put_nowait(event)
+        except asyncio.QueueFull:
+            pass
+    return event
+
+
+def _get_home_changes_since(home_id: str, since: int):
+    events = _home_event_logs[home_id]
+    current_version = _home_versions[home_id]
+    if not events:
+        return [], False, current_version
+
+    oldest_version = events[0]["version"]
+    if since < oldest_version - 1:
+        return [], True, current_version
+
+    changes = [event for event in events if event["version"] > since]
+    return changes, False, current_version
+
+
+def _register_subscriber(home_id: str) -> asyncio.Queue:
+    queue: asyncio.Queue = asyncio.Queue(maxsize=200)
+    _home_subscribers[home_id].add(queue)
+    return queue
+
+
+def _unregister_subscriber(home_id: str, queue: asyncio.Queue) -> None:
+    subscribers = _home_subscribers.get(home_id)
+    if not subscribers:
+        return
+    subscribers.discard(queue)
+    if not subscribers:
+        _home_subscribers.pop(home_id, None)
+
 @router.get("/homes", response_model=list[Home])
 async def list_homes():
     return db.get_homes()
@@ -29,6 +111,78 @@ async def get_home(home_id: str):
     if not home:
         raise HTTPException(status_code=404, detail="Home not found")
     return home
+
+
+@router.get("/homes/{home_id}/changes")
+async def get_home_changes(home_id: str, since: int = Query(default=0, ge=0)):
+    home = db.get_home(home_id)
+    if not home:
+        raise HTTPException(status_code=404, detail="Home not found")
+
+    changes, resync_required, current_version = _get_home_changes_since(home_id, since)
+    return {
+        "home_id": home_id,
+        "since": since,
+        "current_version": current_version,
+        "resync_required": resync_required,
+        "events": changes,
+    }
+
+
+@router.get("/homes/{home_id}/stream")
+async def stream_home_updates(home_id: str, request: Request, since: int = Query(default=0, ge=0)):
+    home = db.get_home(home_id)
+    if not home:
+        raise HTTPException(status_code=404, detail="Home not found")
+
+    last_event_id = request.headers.get("last-event-id")
+    if last_event_id and last_event_id.isdigit():
+        since = max(since, int(last_event_id))
+
+    async def event_stream():
+        queue = _register_subscriber(home_id)
+        try:
+            changes, resync_required, current_version = _get_home_changes_since(home_id, since)
+            hello_payload = {
+                "home_id": home_id,
+                "version": current_version,
+            }
+            yield _format_sse_event("hello", hello_payload, current_version)
+
+            if resync_required:
+                resync_payload = {
+                    "home_id": home_id,
+                    "current_version": current_version,
+                    "reason": "event_buffer_gap",
+                }
+                yield _format_sse_event("resync_required", resync_payload, current_version)
+            else:
+                for event in changes:
+                    yield _format_sse_event(event["type"], event, event["version"])
+
+            while True:
+                if await request.is_disconnected():
+                    break
+
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=SSE_HEARTBEAT_SECONDS)
+                    yield _format_sse_event(event["type"], event, event["version"])
+                except asyncio.TimeoutError:
+                    heartbeat = {
+                        "home_id": home_id,
+                        "version": _home_versions[home_id],
+                        "ts": int(time.time()),
+                    }
+                    yield _format_sse_event("ping", heartbeat, _home_versions[home_id])
+        finally:
+            _unregister_subscriber(home_id, queue)
+
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
+    }
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers=headers)
 
 @router.post("/homes", response_model=Home)
 async def create_home(home: Home):
@@ -64,6 +218,12 @@ async def update_light(home_id: str, light_id: str, state: LightState):
     
     # Auto-save the home after light state change
     db.auto_save_home(home)
+
+    _publish_home_event(
+        home_id,
+        "lights_changed",
+        {"lights": [_serialize_light(target_light)]},
+    )
     
     return target_light
 
@@ -109,6 +269,7 @@ async def control_lights(commands: list[LightControlCommand]):
     print(f"DEBUG: Received control commands: {commands}")
     homes = db.get_homes()
     updates = 0
+    changed_by_home: dict[str, dict[str, dict]] = defaultdict(dict)
     
     for cmd in commands:
         for home in homes:
@@ -130,12 +291,20 @@ async def control_lights(commands: list[LightControlCommand]):
                             r, g, b = cmd.color
                             hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
                             light.state.color = hex_color
-                            
+                             
                         updates += 1
+                        changed_by_home[home.id][light.id] = _serialize_light(light)
                         print(f"DEBUG: Updated light '{light.name}' to on={light.state.on}, brightness={light.state.intensity}, color={light.state.color}")
                         
             # Save home state
             db.update_home(home.id, home)
+
+    for home_id, changed_map in changed_by_home.items():
+        _publish_home_event(
+            home_id,
+            "lights_changed",
+            {"lights": list(changed_map.values())},
+        )
             
     return {"status": "success", "updated_lights": updates}
 
@@ -150,6 +319,12 @@ async def set_background_color(cmd: BackgroundColorCommand):
     home = homes[0]
     home.background_color = cmd.color
     db.update_home(home.id, home)
+
+    _publish_home_event(
+        home.id,
+        "background_changed",
+        {"background_color": home.background_color},
+    )
     
     # Auto-save
     db.auto_save_home(home)
