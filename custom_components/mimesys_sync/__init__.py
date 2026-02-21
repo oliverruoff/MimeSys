@@ -1,15 +1,19 @@
 """MimeSys Digital Twin Sync Integration."""
+import asyncio
 import logging
+from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, Event, ServiceCall
 from homeassistant.const import EVENT_STATE_CHANGED
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.event import async_track_time_interval
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN, CONF_API_URL, CONF_ENTITIES
 
 _LOGGER = logging.getLogger(__name__)
+PERIODIC_RESYNC_INTERVAL = timedelta(seconds=120)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -45,16 +49,39 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                          old_state.state if old_state else "None", 
                          new_state.state)
             
-            # Only sync if the on/off state actually changed
+            is_switch = entity_id.startswith("switch.")
+
+            # Sync on on/off changes and light brightness/color changes
             old_on = old_state.state == "on" if old_state else False
             new_on = new_state.state == "on"
-            
-            if old_on != new_on:
+            on_off_changed = old_on != new_on
+
+            brightness_changed = False
+            color_changed = False
+            if not is_switch:
+                old_brightness = old_state.attributes.get("brightness") if old_state else None
+                new_brightness = new_state.attributes.get("brightness")
+                brightness_changed = old_brightness != new_brightness
+
+                old_rgb = tuple(old_state.attributes.get("rgb_color")) if old_state and old_state.attributes.get("rgb_color") else None
+                new_rgb = tuple(new_state.attributes.get("rgb_color")) if new_state.attributes.get("rgb_color") else None
+                color_changed = old_rgb != new_rgb
+
+            if on_off_changed or brightness_changed or color_changed:
                 entity_type = "Light" if entity_id.startswith("light.") else "Switch"
-                _LOGGER.warning("🔔 %s state changed: %s (%s -> %s) - TRIGGERING SYNC", 
-                           entity_type, entity_id, "ON" if old_on else "OFF", "ON" if new_on else "OFF")
-                # Only sync on/off state, preserve brightness and color
-                await sync_handler.sync_light_state(entity_id, new_state, full_sync=False)
+                _LOGGER.warning(
+                    "🔔 %s changed: %s (on_off=%s, brightness=%s, color=%s) - TRIGGERING SYNC",
+                    entity_type,
+                    entity_id,
+                    on_off_changed,
+                    brightness_changed,
+                    color_changed,
+                )
+
+                # Send full sync for lights when brightness/color changed.
+                # Keep on/off-only sync for simple on/off toggles.
+                full_sync = (not is_switch) and (brightness_changed or color_changed)
+                await sync_handler.sync_light_state(entity_id, new_state, full_sync=full_sync)
             else:
                 entity_type = "light" if entity_id.startswith("light.") else "switch"
                 _LOGGER.debug("⏭️ %s %s changed but on/off state is the same, skipping sync", 
@@ -64,9 +91,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unsubscribe = hass.bus.async_listen(EVENT_STATE_CHANGED, state_change_listener)
     
     # Store both handler and unsubscribe function
+    async def periodic_resync(_now):
+        """Periodically reconcile all monitored entities to self-heal drift."""
+        _LOGGER.warning("🔁 Periodic full resync started for %d entities", len(entities))
+        for entity_id in entities:
+            state = hass.states.get(entity_id)
+            if not state:
+                _LOGGER.warning("⚠️ Periodic resync: entity not found: %s", entity_id)
+                continue
+            await sync_handler.sync_light_state(entity_id, state, full_sync=True)
+        _LOGGER.warning("✅ Periodic full resync completed")
+
+    periodic_unsubscribe = async_track_time_interval(hass, periodic_resync, PERIODIC_RESYNC_INTERVAL)
+
     hass.data[DOMAIN][entry.entry_id] = {
         "handler": sync_handler,
-        "unsubscribe": unsubscribe
+        "unsubscribe": unsubscribe,
+        "periodic_unsubscribe": periodic_unsubscribe,
     }
     
     # Register update listener for config changes
@@ -129,6 +170,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Unsubscribe from state changes
     if "unsubscribe" in data:
         data["unsubscribe"]()
+
+    if "periodic_unsubscribe" in data:
+        data["periodic_unsubscribe"]()
     
     return True
 
@@ -202,35 +246,57 @@ class MimeSysSyncHandler:
                 _LOGGER.warning("📤 Color: %s", command["color"])
             _LOGGER.warning("-" * 60)
             
-            # Send to API
-            async with self.session.post(
-                url,
-                json=[command],
-                headers={"Content-Type": "application/json"},
-                timeout=10
-            ) as response:
-                response_text = await response.text()
-                
-                _LOGGER.warning("📥 API RESPONSE:")
-                _LOGGER.warning("📥 Status: %d", response.status)
-                _LOGGER.warning("📥 Body: %s", response_text)
-                
-                if response.status == 200:
-                    data = await response.json()
-                    updated_count = data.get("updated_lights", 0)
-                    
-                    if updated_count > 0:
-                        _LOGGER.warning("✅ SUCCESS! Updated %d light(s) in MimeSys", updated_count)
-                    else:
-                        _LOGGER.error("⚠️ API CALL SUCCEEDED BUT NO LIGHTS UPDATED!")
-                        _LOGGER.error("⚠️ This means the light name '%s' was NOT found in MimeSys", entity_id)
-                        _LOGGER.error("⚠️ Check: Does a light in MimeSys have EXACTLY this name: '%s' ?", entity_id)
-                        _LOGGER.error("⚠️ Common issues:")
-                        _LOGGER.error("⚠️   - Name in MimeSys: 'Flur Licht' vs entity_id: 'light.eg_flur_licht' ❌")
-                        _LOGGER.error("⚠️   - Name in MimeSys: 'light.eg_flur_licht' vs entity_id: 'light.eg_flur_licht' ✅")
-                else:
-                    _LOGGER.error("❌ API CALL FAILED: HTTP %d", response.status)
-                    _LOGGER.error("❌ Response: %s", response_text)
+            retry_delays = [0, 1, 3, 10]
+            for attempt, delay in enumerate(retry_delays, start=1):
+                if delay > 0:
+                    _LOGGER.warning("⏳ Retrying sync for %s in %ds (attempt %d/%d)", entity_id, delay, attempt, len(retry_delays))
+                    await asyncio.sleep(delay)
+
+                try:
+                    async with self.session.post(
+                        url,
+                        json=[command],
+                        headers={"Content-Type": "application/json"},
+                        timeout=10,
+                    ) as response:
+                        response_text = await response.text()
+
+                        _LOGGER.warning("📥 API RESPONSE:")
+                        _LOGGER.warning("📥 Status: %d", response.status)
+                        _LOGGER.warning("📥 Body: %s", response_text)
+
+                        if response.status == 200:
+                            data = {}
+                            try:
+                                data = await response.json()
+                            except Exception:
+                                _LOGGER.warning("⚠️ Could not parse JSON response body")
+
+                            updated_count = data.get("updated_lights", 0)
+
+                            if updated_count > 0:
+                                _LOGGER.warning("✅ SUCCESS! Updated %d light(s) in MimeSys", updated_count)
+                            else:
+                                _LOGGER.error("⚠️ API CALL SUCCEEDED BUT NO LIGHTS UPDATED!")
+                                _LOGGER.error("⚠️ This means the light name '%s' was NOT found in MimeSys", entity_id)
+                                _LOGGER.error("⚠️ Check: Does a light in MimeSys have EXACTLY this name: '%s' ?", entity_id)
+                                _LOGGER.error("⚠️ Common issues:")
+                                _LOGGER.error("⚠️   - Name in MimeSys: 'Flur Licht' vs entity_id: 'light.eg_flur_licht' ❌")
+                                _LOGGER.error("⚠️   - Name in MimeSys: 'light.eg_flur_licht' vs entity_id: 'light.eg_flur_licht' ✅")
+                            return
+
+                        _LOGGER.error("❌ API CALL FAILED: HTTP %d", response.status)
+                        _LOGGER.error("❌ Response: %s", response_text)
+                except Exception as attempt_error:
+                    _LOGGER.error(
+                        "❌ Sync attempt %d/%d failed for %s: %s",
+                        attempt,
+                        len(retry_delays),
+                        entity_id,
+                        attempt_error,
+                    )
+
+            _LOGGER.error("❌ All retry attempts failed for %s", entity_id)
                     
         except Exception as e:
             _LOGGER.error("❌ EXCEPTION while syncing %s to MimeSys:", entity_id, exc_info=True)

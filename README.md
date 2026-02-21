@@ -750,7 +750,7 @@ url: http://localhost:8000/showcase?revolve=false&floor=0
 aspect_ratio: 16:9
 ```
 
-**Note**: The showcase mode polls the API every 1 second to update light states in real-time.
+**Note**: The showcase mode uses a server-sent event stream for real-time updates and falls back to low-frequency polling only when disconnected.
 
 #### Control Lights Programmatically
 
@@ -970,7 +970,13 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Changelog
 
-### v1.2.26 (Latest)
+### v1.2.27 (Latest)
+- ✅ Showcase sync switched to SSE push updates with automatic reconnect and heartbeat
+- ✅ Added low-frequency fallback polling only when stream is disconnected
+- ✅ HA integration now retries failed sync calls and performs periodic full resync to self-heal drift
+- ✅ Light sync now also reacts to brightness/color changes for better fidelity
+
+### v1.2.26
 - ✅ Editor View Mode: Light spheres now always visible on current floor
 - ✅ Editor View Mode: Lights emit proper light when switched ON in the light menu
 

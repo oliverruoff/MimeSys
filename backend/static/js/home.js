@@ -416,6 +416,35 @@ export class HomeRenderer {
         });
     }
 
+    updateLightById(lightId, state) {
+        if (!lightId || !state) return;
+
+        const obj = this.interactables.find(o =>
+            o.userData.type === 'light' && o.userData.id === lightId
+        );
+
+        if (!obj) return;
+
+        if (obj.material) {
+            obj.material.color.setHex(state.on ? parseInt(state.color.replace('#', '0x')) : 0x4a4a4a);
+        }
+
+        if (obj.parent) {
+            const pointLight = obj.parent.children.find(child =>
+                child.userData && child.userData.type === 'pointLight' && child.userData.lightId === lightId
+            );
+
+            if (pointLight) {
+                pointLight.color.setHex(parseInt(state.color.replace('#', '0x')));
+                pointLight.intensity = state.on ? state.intensity * 5 : 0;
+                const floorVisible = obj.parent.visible && obj.parent.scale.y > 0.01;
+                pointLight.visible = state.on && floorVisible;
+            }
+        }
+
+        obj.userData.state = state;
+    }
+
     updateLightVisibility() {
         if (!this.currentHome || !this.homeGroup) return;
 
