@@ -437,6 +437,10 @@ class ShowcaseApp {
                 new THREE.Vector3(this.houseCenter.x, this.houseCenter.y, this.houseCenter.z),
                 highestShownFloor
             );
+
+            if (this.homeRenderer.setVisibleLightFloor) {
+                this.homeRenderer.setVisibleLightFloor(highestShownFloor);
+            }
         }
 
         this.sceneManager.renderer.render(this.sceneManager.scene, this.sceneManager.camera);
