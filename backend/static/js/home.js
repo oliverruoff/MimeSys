@@ -302,6 +302,24 @@ export class HomeRenderer {
         return parsed;
     }
 
+    createShadowProxy(geometry, parent, position, rotationY = 0) {
+        const proxyMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false
+        });
+        proxyMaterial.colorWrite = false;
+
+        const proxy = new THREE.Mesh(geometry, proxyMaterial);
+        proxy.position.copy(position);
+        proxy.rotation.y = rotationY;
+        proxy.castShadow = true;
+        proxy.receiveShadow = false;
+        parent.add(proxy);
+        return proxy;
+    }
+
     createWall(wallData, parent, floorId) {
         const { p1, p2, height, thickness } = wallData;
         const dx = p2.x - p1.x;
@@ -318,8 +336,15 @@ export class HomeRenderer {
 
         mesh.position.set(cx, height / 2, cz);
         mesh.rotation.y = -angle;
-        mesh.castShadow = true;
+        mesh.castShadow = false;
         mesh.receiveShadow = true;
+
+        this.createShadowProxy(
+            geo,
+            parent,
+            new THREE.Vector3(cx, height / 2, cz),
+            -angle
+        );
 
         mesh.userData = { type: 'wall', floorId, obj: wallData };
         this.interactables.push(mesh);
@@ -419,8 +444,15 @@ export class HomeRenderer {
         mesh.position.set(position.x, relativeY, position.z);
         mesh.rotation.y = rotation;
 
-        mesh.castShadow = true;
+        mesh.castShadow = false;
         mesh.receiveShadow = true;
+
+        this.createShadowProxy(
+            geo,
+            parent,
+            new THREE.Vector3(position.x, relativeY, position.z),
+            rotation
+        );
 
         mesh.userData = { type: 'cube', id, floorId, obj: cubeData };
 
