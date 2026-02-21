@@ -129,7 +129,7 @@ The integration syncs your Home Assistant lights with the 3D model in real-time.
 ---
 
 ## Creating Your 3D Home
-
+![MimeSys Overall View](MimeSys_Overall.png)
 ### Accessing the Editor
 
 1. Go to **Settings** → **Add-ons** → **3D Home Digital Twin**

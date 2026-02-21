@@ -6,7 +6,7 @@ A powerful web-based 3D home visualization and design tool that lets you create 
 ![Docker](https://img.shields.io/badge/docker-ready-brightgreen.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-addon-blue.svg)
 
-## Screenshot
+## Showcase
 
 ![MimeSys 3D Home Visualization](../Mimesys.gif)
 
@@ -84,6 +84,8 @@ A powerful web-based 3D home visualization and design tool that lets you create 
 ---
 
 ## Demo
+
+![MimeSys Overall View](../MimeSys_Overall.png)
 
 **Editor Mode** - Design your home layout:
 - Click "Add Wall" and click two points to create walls
